@@ -1,0 +1,13 @@
+{
+  "titleid": "PPSA99306",
+  "name": "Wind Waker HD",
+  "kind": "game",
+  "description": "Unofficial PS5 homebrew port of ZeldaWWHDRecomp. No game data: built from your own dump.",
+  "license": "GPL-3.0",
+  "author": "Gary Riches",
+  "version": "1.0.0",
+  "source_repo": "https://github.com/griches/PS5_WindWakerHD",
+  "artifact_url": "https://github.com/griches/PS5_WindWakerHD/releases/download/v1.0.0/wwhd-ps5-kit-1.0.0.zip",
+  "sha256": "c5065e6a565f84ab32d8de65526c6a142876d20962a576270264ab08ad85811e",
+  "icon_url": "https://raw.githubusercontent.com/griches/PS5_WindWakerHD/v1.0.0/ps5/sce_sys/icon0.png"
+}
