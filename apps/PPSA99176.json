@@ -1,0 +1,13 @@
+{
+  "titleid": "PPSA99176",
+  "name": "Nuvio",
+  "kind": "app",
+  "description": "Nuvio for PlayStation 5 - the Nuvio TV interface as a PS5 app with a native 4K HDR player",
+  "license": "GPL-3.0",
+  "author": "Husam Osman",
+  "version": "1.8.0",
+  "source_repo": "https://github.com/theghostonline/Nuvio-PS5",
+  "artifact_url": "https://github.com/theghostonline/Nuvio-PS5/releases/download/v1.8.0/PPSA99176.zip",
+  "sha256": "759707ee595e6581b4e8e9049f0c7bf190336e919078a5d39ba616c6012f052c",
+  "icon_url": "https://raw.githubusercontent.com/theghostonline/Nuvio-PS5/v1.8.0/app/sce_sys/icon0.png"
+}
