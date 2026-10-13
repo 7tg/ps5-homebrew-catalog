@@ -1,0 +1,13 @@
+{
+  "titleid": "PPSA99300",
+  "name": "Spider-Man Edge Of Time",
+  "kind": "game",
+  "description": "The PS5 homebrew title (PPSA99300) for EdgeOfTimeRecomp, the static recompilation of the Xbox 360 game on the ReXGlue SDK. The plan is EdgeOfTimeRecomp's docs/PS5-PORTING.md.",
+  "license": "MIT",
+  "author": "KongaTime",
+  "version": "1.0.0",
+  "source_repo": "https://github.com/KongaTime/PS5_EdgeOfTimeTitle",
+  "artifact_url": "https://github.com/KongaTime/PS5_EdgeOfTimeTitle/releases/download/v1.0.0/Spider.Man.Edge.Of.Time.zip",
+  "sha256": "0b5c73107c1dcf02e8f9861d1d5ece902a04a43faa326c4afac81f2e6e75dec6",
+  "icon_url": "https://raw.githubusercontent.com/KongaTime/PS5_EdgeOfTimeTitle/v1.0.0/ps5/sce_sys/icon0.png"
+}
