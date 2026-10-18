@@ -414,7 +414,7 @@ other repositories: nothing is downloaded and developers aren't contacted.
    with a `.zip`, `.ffpkg` or `.ffpfsc` file, then everything
    `catalog draft` checks. Only a `.zip` is accepted at the moment, so a
    proposal whose file is an image is closed in review.
-4. **Propose.** An app with no blockers, a license GitHub detects and an icon
+4. **Propose.** An app with no blockers, an icon
    next to its `param.json` gets a listing pull request on `listing/<TITLEID>`
    from the catalog's GitHub App (at most 10 new ones a run). The job guesses
    `kind` from keywords and `description` from the repository's About text or

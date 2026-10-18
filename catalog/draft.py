@@ -17,7 +17,7 @@ from urllib.parse import quote, urlsplit
 
 from . import artifacts
 from .github import GitHub
-from .records import CATEGORIES, FIELDS, TITLE_ID, load_catalog, tag_version
+from .records import CATEGORIES, FIELDS, TITLE_ID, UNLICENSED, load_catalog, tag_version
 from .report import Report
 from .updates import newest_release
 
@@ -77,8 +77,9 @@ def draft_record(repo_value: str, github: GitHub, apps_dir: Path, tag: str | Non
         record["license"] = spdx
         draft.facts.append(f"license detected by GitHub: {spdx}")
     else:
-        draft.todo.append("GitHub detects no license: read the README/LICENSE files, set `license` to the "
-                          "SPDX identifier they state, quote the source in the PR, or stop if none is stated")
+        record["license"] = UNLICENSED
+        draft.todo.append("GitHub detects no license, so it is listed as Unlicensed: if the README/LICENSE "
+                          "files state an SPDX identifier, set `license` to it and quote the source in the PR")
 
     release = github.release_by_tag(owner, name, tag) if tag else newest_release(github, owner, name)
     if release is None or release.get("draft"):

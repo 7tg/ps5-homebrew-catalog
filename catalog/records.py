@@ -21,6 +21,7 @@ FIELDS = (
     "version", "source_repo", "artifact_url", "sha256", "icon_url",
 )
 RESERVATION_NULL = ("source_repo", "artifact_url", "icon_url", "sha256")
+UNLICENSED = "Unlicensed"  # shown when GitHub detects no license for the repository
 RESERVATION_NULLABLE = ("version", "license")
 MAX_RESERVATIONS_PER_ACCOUNT = 5
 RESERVATION_STALE_DAYS = 180

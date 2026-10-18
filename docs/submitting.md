@@ -9,7 +9,7 @@ then reviews and merges it.
 - A **native PS5 app**: built for the PS5 and installed as a title with its own
   title ID (`eboot.bin` and `sce_sys/param.json`). ELF payloads, PS4 packages,
   backports, emulator ROMs and web pages aren't listed.
-- A **public GitHub repository** for the app, with a license GitHub can detect.
+- A **public GitHub repository** for the app. If GitHub detects no license, the app is listed as `Unlicensed`.
 - A **published GitHub release** in that repository, tagged with the app's
   version (for example `v1.2.0` or `01.000.005`), with a **release artifact**
   attached to it: a `.zip` of the app folder, the only format accepted at the
@@ -206,7 +206,7 @@ repository and publish a new release; the next scan picks it up, or you can
 | No `sce_sys/param.json` at the release tag | Commit `sce_sys/param.json` with your `titleId` and `contentVersion`. If your build generates it, commit a copy where the catalog can read it, at the root or in the folder the README names as the app. |
 | `param.json` is in a sample or test folder | Put the app's own `sce_sys/param.json` at the root, or point your README at the folder that holds the app. |
 | The title ID isn't a PS5 (`PPSA`) title ID | Use a `PPSA` plus five digits title ID, such as `PPSA01234`. |
-| GitHub detects no license | Add a `LICENSE` file GitHub recognizes (an SPDX license such as `GPL-3.0` or `MIT`). |
+| GitHub detects no license | Not an error: the app is listed as `Unlicensed`. Add a `LICENSE` file GitHub recognizes (such as `GPL-3.0` or `MIT`) to show it instead. |
 | No description to draft from | Add a repository description or a short README paragraph saying what the app does. |
 | Native, but no release yet | Publish your first release as above. Only you can do that. |
 | The name or title ID is already listed | Choose a distinct name or title ID; see [Common check failures](#common-check-failures). |

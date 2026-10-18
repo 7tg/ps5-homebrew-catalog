@@ -79,7 +79,7 @@ class DraftTests(unittest.TestCase):
 
     def test_missing_license_is_a_todo(self):
         result = draft_record("Dev/Example", FakeGitHub(), self.apps)
-        self.assertEqual(result.record["license"], "")
+        self.assertEqual(result.record["license"], "Unlicensed")
         self.assertTrue(any("no license" in item for item in result.todo))
 
     def test_blockers(self):

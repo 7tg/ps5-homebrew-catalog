@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from . import artifacts, facts
 from .github import GitHub, GitHubError
-from .records import Record
+from .records import UNLICENSED, Record
 from .report import Report
 
 
@@ -87,6 +87,8 @@ def _verify_reservation(name: str, record: Record, github: GitHub, report: Repor
 def _check_license(name: str, license_value: str, repo: dict, report: Report) -> None:
     detected = (repo.get("license") or {}).get("spdx_id")
     if not detected or detected == "NOASSERTION":
+        if license_value == UNLICENSED:
+            return
         report.warning(name, "GitHub could not detect the repository license; confirm it manually")
     elif not any(token == detected or token.startswith(detected + "-") for token in license_value.split()):
         report.error(name, f"license {license_value!r} does not match the repository license {detected!r}")

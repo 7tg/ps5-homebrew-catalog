@@ -38,7 +38,7 @@ from string import Template
 from urllib.parse import quote, unquote
 
 from . import artifacts
-from .records import CATEGORIES, KINDS, Record, load_catalog
+from .records import CATEGORIES, KINDS, UNLICENSED, Record, load_catalog
 from .report import Report
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -847,7 +847,7 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
                 "category": d["category"], "category_label": CATEGORIES[d["category"]],
                 "description": d["description"], "author": d["author"], "version": d["version"] or "",
                 "version_label": version_label(d["version"]) if d["version"] else "",
-                "license": d["license"] or "", "soon": record.reserved, "icon": icons[record.titleid],
+                "license": d["license"] or ("" if record.reserved else UNLICENSED), "soon": record.reserved, "icon": icons[record.titleid],
                 "updated": display_date(updated[record.path.name]) if record.path.name in updated else "",
                 "updated_iso": updated.get(record.path.name, ""), "short_url": host + page_url(record),
                 "released_iso": known[record.titleid][0].released or "",

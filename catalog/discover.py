@@ -29,7 +29,7 @@ from pathlib import Path
 
 from .draft import ARTIFACT_EXTENSIONS, Draft, draft_record
 from .github import GitHub, GitHubError
-from .records import BAD_CATEGORIES, MAX_LENGTH, load_catalog, record_problems
+from .records import BAD_CATEGORIES, MAX_LENGTH, UNLICENSED, load_catalog, record_problems
 from .report import Report
 
 # (query, signal shown in the report, strong: the hit itself is evidence of a native title)
@@ -274,8 +274,6 @@ def complete(candidate: Candidate, github: GitHub) -> str | None:
         return f"`{file_name}` looks like a desktop build, not a console title"
     if SAMPLE_FOLDER.search(candidate.draft.param_path):
         return f"`{candidate.draft.param_path}` is in a sample or test folder; it may not be the repository's app"
-    if not record["license"]:
-        return "GitHub detects no license; set it from the README or LICENSE file by hand"
     if not record["icon_url"]:
         return "no usable icon next to param.json; pick the app's icon by hand"
     owner, name = candidate.repo.split("/")
@@ -489,7 +487,8 @@ def pull_request_text(candidate: Candidate, repository: str = CATALOG_REPO) -> t
         "",
         "**Guessed by the job, please confirm or edit on this branch:**",
         *(f"- {guess}" for guess in candidate.guesses),
-        f"- license `{record['license']}`: detected by GitHub",
+        f"- license `{record['license']}`: " + ("none detected by GitHub, listed as Unlicensed"
+                                               if record["license"] == UNLICENSED else "detected by GitHub"),
         "",
         f"**Before merging, check with the [listing runbook]({blob}/docs/maintainers/listing-runbook.md):**",
         "- It's a native app people install, not a template, sample, SDK, driver or test project.",
