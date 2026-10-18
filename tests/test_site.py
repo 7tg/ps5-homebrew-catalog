@@ -108,7 +108,7 @@ class SiteBuildTests(unittest.TestCase):
                       page)
         self.assertIn('Maintained by <a href="https://github.com/darkxex">darkxex</a>, created by <a href="https://github.com/blackbearreloaded">BlackBearReloaded</a> · Built from', page)
         self.assertIn('<a class="notice"', page)
-        self.assertIn('href="https://github.com/darkxex/ProsperoStore"', page)
+        self.assertIn('href="https://github.com/darkxex/ProsperoStore/releases"', page)
         tv = (self.out / "tv" / "index.html").read_text(encoding="utf-8")
         self.assertIn('data-comments="https://raw.githubusercontent.com/darkxex/ps5-homebrew-catalog/comments-data/v1/"', tv)
         # The QR library is one of the site's own files and comes before the script that uses it.
