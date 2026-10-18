@@ -41,13 +41,15 @@ CATEGORIES = {
     "tools": "Tools & tests",
     "showcases": "Showcases",
 }
-# Fields a record may carry besides FIELDS while they are being introduced; checked when present.
-OPTIONAL_FIELDS = ()
+# Fields a record may carry besides FIELDS; checked when present.
+# icon_member: where the icon is inside the release's ZIP, for a repository that does not commit it.
+# icon_url is then null (docs/metadata.md, Icon inside the release file).
+OPTIONAL_FIELDS = ("icon_member",)
 MAX_FILE_BYTES = 8192
 MAX_LENGTH = {
     "titleid": 9, "name": 64, "kind": 4, "category": 16, "description": 200, "license": 64,
     "author": 64, "version": 32, "source_repo": 200, "artifact_url": 500,
-    "sha256": 64, "icon_url": 500,
+    "sha256": 64, "icon_url": 500, "icon_member": 200,
 }
 # Title IDs that templates ship with; publishing under them guarantees collisions.
 RESERVED_TITLE_IDS = {"PPSA99999": "the ps5-native-app-boilerplate default"}
@@ -76,6 +78,10 @@ class Record:
         return self.data["titleid"]
 
     @property
+    def icon_source(self) -> str | None:
+        return icon_source(self.data)
+
+    @property
     def reserved(self) -> bool:
         """True for a title ID reservation (no release yet), shown as coming soon."""
         return self.data["artifact_url"] is None
@@ -95,6 +101,17 @@ class Record:
     @property
     def asset_name(self) -> str:
         return release_parts(self.data)[1]
+
+
+def icon_source(data: dict) -> str | None:
+    """Where a record's icon comes from, as one string: its icon_url, or the file in the release ZIP.
+
+    Used to tell whether the icon changed and to key caches. None when the record has no icon yet."""
+    if data.get("icon_url"):
+        return data["icon_url"]
+    if data.get("icon_member") and data.get("artifact_url"):
+        return f"{data['artifact_url']}#{data['icon_member']}"
+    return None
 
 
 def repo_parts(source_repo: str) -> tuple[str, str]:
@@ -147,8 +164,12 @@ def _check_fields(data: dict) -> list[str]:
         for field in RESERVATION_NULL:
             if data[field] is not None:
                 problems.append(f"{field} must be null in a reservation (artifact_url is null)")
+    if reservation and "icon_member" in data:
+        problems.append("icon_member must be absent in a reservation (artifact_url is null)")
     for field, value in data.items():
         if value is None:
+            if field == "icon_url" and isinstance(data.get("icon_member"), str):
+                continue          # the icon is inside the release's ZIP
             if not (reservation and field in RESERVATION_NULL + RESERVATION_NULLABLE):
                 problems.append(f"{field} must not be null" + (
                     "" if reservation else "; only reservations (artifact_url null) may leave fields null"))
@@ -211,11 +232,27 @@ def _check_fields(data: dict) -> list[str]:
             choices = " or ".join(repr(v) for v in version_from_tag(unquote(tag)))
             problems.append(f"version must match the release tag {unquote(tag)!r} in artifact_url: use {choices}")
 
+    if "icon_member" in data:
+        problems.extend(_icon_member_problems(data))
     if data["icon_url"] is not None:
         icon = urlsplit(data["icon_url"])
         if not (icon.scheme == "https" and icon.hostname and not icon.username and not icon.password
                 and not icon.fragment and icon.path.lower().endswith(ICON_EXTENSIONS)):
             problems.append("icon_url must be a direct HTTPS link ending in .png, .jpg, .jpeg or .webp")
+    return problems
+
+
+def _icon_member_problems(data: dict) -> list[str]:
+    member = data["icon_member"]
+    problems = []
+    if data["icon_url"] is not None:
+        problems.append("icon_url must be null when icon_member names the icon inside the release file")
+    if not data["artifact_url"].lower().endswith(".zip"):
+        problems.append("icon_member needs a .zip release file")
+    parts = member.split("/")
+    if ("\\" in member or member.startswith("/") or any(p in ("", ".", "..") for p in parts)
+            or not member.lower().endswith(ICON_EXTENSIONS)):
+        problems.append("icon_member must be a relative path inside the ZIP ending in .png, .jpg, .jpeg or .webp")
     return problems
 
 

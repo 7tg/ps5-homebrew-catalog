@@ -232,7 +232,7 @@ class SiteBuildTests(unittest.TestCase):
                                    notes="## Fixed\n- <b>Menus</b> open [faster](https://example.com) "
                                          "<script>alert(1)</script>\n\n**Full Changelog**: https://x/y")
         png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR" + (512).to_bytes(4, "big") * 2
-        with mock.patch.object(site, "_icon", lambda url, cache: (png, "png", png)), \
+        with mock.patch.object(site, "_icon", lambda url, cache, fetch=None: (png, "png", png)), \
                 mock.patch.object(site, "png_icons", lambda data: {512: b"large", 256: b"small"}), \
                 mock.patch.object(facts_module, "cached", lambda record, github, cache, fetch=None:
                                   (facts_module.Facts(), None) if record.reserved else (known, None)):
@@ -361,7 +361,7 @@ class SiteBuildTests(unittest.TestCase):
     @unittest.skipUnless(HAVE_PILLOW, "needs Pillow")
     def test_each_app_gets_its_picture_and_colour(self):
         png = self.icon_png()
-        with mock.patch.object(site, "_icon", lambda url, cache: (png, "png", png)):
+        with mock.patch.object(site, "_icon", lambda url, cache, fetch=None: (png, "png", png)):
             self.build(fetch_icons=True)
         html = (self.out / "index.html").read_text(encoding="utf-8")
         pictures = sorted(path.name for path in (self.out / "assets").glob("ambient-*.png"))
@@ -460,6 +460,29 @@ class IconCacheTests(unittest.TestCase):
                 with mock.patch.object(site.artifacts, "fetch_small", failing_fetch):
                     site.build_site(root / "out5", apps, report, icon_cache=cache)
                 self.assertTrue(list((root / "out5").rglob("*.png")))
+
+    def test_an_icon_inside_the_release_zip_is_read_from_it_and_cached(self):
+        from catalog import site
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            apps, cache = root / "apps", root / "cache"
+            write_record(apps, record(icon_url=None, icon_member="PPSA01234/sce_sys/icon0.png"))
+            reads = []
+
+            def fake_zip(url, member, limit):
+                reads.append((url, member))
+                return member, self.PNG
+
+            with mock.patch.object(site.artifacts, "read_zip_member", fake_zip), \
+                    mock.patch.object(site, "png_icons", lambda data: {512: b"large", 256: b"small"}), \
+                    mock.patch.object(site, "process_icon", lambda data: (data, "png")):
+                for n in range(2):
+                    report = Report()
+                    site.build_site(root / f"out{n}", apps, report, icon_cache=cache)
+                    self.assertFalse([item for item in report.items if "icon" in item[2]])
+            self.assertEqual(reads, [(record()["artifact_url"], "PPSA01234/sce_sys/icon0.png")])
+            self.assertEqual(len(list(cache.glob("*.img"))), 1)
+            self.assertTrue(list((root / "out1").rglob("icon-PPSA01234*")))
 
 
 if __name__ == "__main__":

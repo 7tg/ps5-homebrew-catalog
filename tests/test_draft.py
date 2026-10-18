@@ -101,6 +101,28 @@ class DraftTests(unittest.TestCase):
         self.assertEqual(result.param_path, "Example-v1.2.0.zip:Example/sce_sys/param.json")
         self.assertTrue(any("read from inside" in item for item in result.todo))
 
+    def test_icon_is_read_from_the_zip_folder_that_holds_the_param_json(self):
+        icon = PNG + b"\x00" * 20
+
+        def zip_member(url, suffix, limit):
+            members = {"sce_sys/param.json": ("Example/sce_sys/param.json", json.dumps(PARAM).encode()),
+                       "Example/sce_sys/icon0.png": ("Example/sce_sys/icon0.png", icon)}
+            return members.get(suffix)
+        self.zip_member.side_effect = zip_member
+        result = draft_record("Dev/Example", FakeGitHub(paths=["README.md"]), self.apps)
+        self.assertEqual(result.blockers, [])
+        self.assertIsNone(result.record["icon_url"])
+        self.assertEqual(result.record["icon_member"], "Example/sce_sys/icon0.png")
+        self.assertTrue(any("inside Example-v1.2.0.zip" in fact for fact in result.facts))
+
+    def test_no_icon_in_the_zip_folder_is_a_todo(self):
+        self.zip_member.side_effect = lambda url, suffix, limit: (
+            ("Example/sce_sys/param.json", json.dumps(PARAM).encode()) if suffix == "sce_sys/param.json" else None)
+        result = draft_record("Dev/Example", FakeGitHub(paths=["README.md"]), self.apps)
+        self.assertEqual(result.record["icon_url"], "")
+        self.assertNotIn("icon_member", result.record)
+        self.assertTrue(any("no usable icon at Example/sce_sys/icon0.png" in item for item in result.todo))
+
     def test_already_listed_title_id_blocks(self):
         github = FakeGitHub(param=dict(PARAM, titleId="PPSA01234"))
         self.assertTrue(any("already listed" in b for b in draft_record("Dev/Example", github, self.apps).blockers))

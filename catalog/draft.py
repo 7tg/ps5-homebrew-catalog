@@ -156,17 +156,34 @@ def draft_record(repo_value: str, github: GitHub, apps_dir: Path, tag: str | Non
     record["titleid"] = titleid
     record["name"] = title_name
 
-    icon_path = "sce_sys/icon0.png" if in_release else param_path.rsplit("/", 1)[0] + "/icon0.png"
-    icon_url = f"https://raw.githubusercontent.com/{full_name}/{quote(tag, safe='')}/{quote(icon_path)}"
-    try:
-        image_format, warnings = artifacts.inspect_icon(artifacts.fetch_small(icon_url, artifacts.MAX_ICON_BYTES))
-    except (artifacts.DownloadError, OSError):
-        image_format, warnings = None, []
-    if image_format:
-        record["icon_url"] = icon_url
-        draft.facts.append(f"icon: {icon_url} ({image_format})" + (f"; {'; '.join(warnings)}" if warnings else ""))
+    if in_release:
+        # The param.json came out of the ZIP, so the icon is read from the same folder of the ZIP.
+        icon_path = member[0].rsplit("/", 1)[0] + "/icon0.png" if "/" in member[0] else "icon0.png"
+        try:
+            found = artifacts.read_zip_member(record["artifact_url"], icon_path, artifacts.MAX_ICON_BYTES)
+            image_format, warnings = artifacts.inspect_icon(found[1]) if found else (None, [])
+        except (artifacts.DownloadError, OSError):
+            found, image_format, warnings = None, None, []
+        if image_format:
+            record["icon_url"] = None
+            record["icon_member"] = found[0]
+            draft.facts.append(f"icon: {found[0]} inside {asset['name']} ({image_format})"
+                               + (f"; {'; '.join(warnings)}" if warnings else ""))
+        else:
+            draft.todo.append(f"no usable icon at {icon_path} inside {asset['name']}; find the app's icon in "
+                              f"the repository, pinned to {tag}")
     else:
-        draft.todo.append(f"no usable icon at {icon_path}; find the app's icon in the repository, pinned to {tag}")
+        icon_path = param_path.rsplit("/", 1)[0] + "/icon0.png"
+        icon_url = f"https://raw.githubusercontent.com/{full_name}/{quote(tag, safe='')}/{quote(icon_path)}"
+        try:
+            image_format, warnings = artifacts.inspect_icon(artifacts.fetch_small(icon_url, artifacts.MAX_ICON_BYTES))
+        except (artifacts.DownloadError, OSError):
+            image_format, warnings = None, []
+        if image_format:
+            record["icon_url"] = icon_url
+            draft.facts.append(f"icon: {icon_url} ({image_format})" + (f"; {'; '.join(warnings)}" if warnings else ""))
+        else:
+            draft.todo.append(f"no usable icon at {icon_path}; find the app's icon in the repository, pinned to {tag}")
 
     # Profile name as a starting point for `author`.
     profile = github.user(owner) or {}

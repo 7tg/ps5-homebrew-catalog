@@ -15,7 +15,7 @@ from pathlib import Path
 
 from .github import GitHub, GitHubError
 from .policy import Change, check_changes, check_publisher, derivative_notes, is_maintainer
-from .records import MAX_FILE_BYTES, RECORD_PATH, Record, load_catalog, load_record, repo_parts
+from .records import MAX_FILE_BYTES, RECORD_PATH, Record, icon_source, load_catalog, load_record, repo_parts
 from .report import Report
 from .verify import newer_release, verify_record
 
@@ -483,7 +483,7 @@ def update_section(update) -> str:
          + (" (pre-release)" if update.prerelease else "")),
         ("File", f"`{old_asset}`", f"`{new_asset}`"),
         ("sha256", f"`{old['sha256']}`", f"`{new['sha256']}` (GitHub's digest)"),
-        ("Icon", old["icon_url"], new["icon_url"] if new["icon_url"] != old["icon_url"] else "unchanged"),
+        ("Icon", icon_source(old), icon_source(new) if icon_source(new) != icon_source(old) else "unchanged"),
     ]
     return "\n".join([
         f"### {new['name']} (`{new['titleid']}`): {old['version']} → {new['version']}",

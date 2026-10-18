@@ -66,7 +66,8 @@ def new_app_reasons(author: str, changes: list[Change], new: Record | None, list
     if not new.data["artifact_url"].startswith(new.data["source_repo"].rstrip("/") + "/releases/download/"):
         reasons.append("the file is not a release file of the app's repository")
     icons = f"https://raw.githubusercontent.com/{new.owner}/{new.repo}/"
-    if not new.data["icon_url"].casefold().startswith(icons.casefold()):
+    # An icon inside the release file needs no address: the file itself is checked above.
+    if new.data["icon_url"] and not new.data["icon_url"].casefold().startswith(icons.casefold()):
         reasons.append("the icon is at an address outside the app's repository")
     return reasons
 
@@ -108,6 +109,7 @@ def bump_reasons(author: str, changes: list[Change], old: Record | None, new: Re
     if not new.data["artifact_url"].startswith(new.data["source_repo"].rstrip("/") + "/releases/download/"):
         reasons.append("the file is not a release file of the app's repository")
     icons = f"https://raw.githubusercontent.com/{new.owner}/{new.repo}/"
-    if new.data["icon_url"] != old.data["icon_url"] and not new.data["icon_url"].casefold().startswith(icons.casefold()):
+    if (new.data["icon_url"] and new.data["icon_url"] != old.data["icon_url"]
+            and not new.data["icon_url"].casefold().startswith(icons.casefold())):
         reasons.append("the icon moves to an address outside the app's repository")
     return reasons

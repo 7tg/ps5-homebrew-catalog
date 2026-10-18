@@ -26,7 +26,7 @@ from .github import GitHub
 from .records import Record, load_record, tag_version
 from .report import Report
 
-BUMP_FIELDS = ("version", "artifact_url", "sha256", "icon_url")
+BUMP_FIELDS = ("version", "artifact_url", "sha256", "icon_url", "icon_member")
 
 
 @dataclass
@@ -113,7 +113,8 @@ def find_update(record: Record, github: GitHub, icon_exists=None) -> tuple[Updat
     notes = [f"asset chosen by {how}: {asset['name']}"]
 
     old_segment = f"/{quote(record.tag, safe='')}/"
-    if old_segment in data["icon_url"]:
+    # An icon inside the release file (icon_member) moves with the file; verify checks it is in the new one.
+    if data["icon_url"] and old_segment in data["icon_url"]:
         candidate = data["icon_url"].replace(old_segment, f"/{quote(tag, safe='')}/", 1)
         exists = icon_exists or _icon_exists
         if exists(candidate):

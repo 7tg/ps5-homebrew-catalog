@@ -363,8 +363,11 @@ def png_icons(data: bytes) -> dict[int, bytes]:
 ICON_MAX_AGE = 24 * 60 * 60  # seconds a cached original is used before it is fetched again
 
 
-def _icon(url: str, cache: Path | None) -> tuple[bytes, str, bytes]:
+def _icon(url: str, cache: Path | None, fetch=None) -> tuple[bytes, str, bytes]:
     """(site icon, its extension, original bytes) for url, using and filling the optional cache of originals.
+
+    `url` names the icon (a record's icon_source) and keys the cache; `fetch()` returns its bytes,
+    by default the file at `url`.
 
     A cached original older than ICON_MAX_AGE is fetched again: the file behind a URL that names a
     branch can change. When that fetch fails, the cached one is used.
@@ -380,7 +383,7 @@ def _icon(url: str, cache: Path | None) -> tuple[bytes, str, bytes]:
         except (OSError, ValueError):
             entry.unlink(missing_ok=True)
     try:
-        data = artifacts.fetch_small(url, artifacts.MAX_ICON_BYTES)
+        data = fetch() if fetch else artifacts.fetch_small(url, artifacts.MAX_ICON_BYTES)
         result = process_icon(data)
     except (artifacts.DownloadError, OSError, ValueError):
         if kept is None:
@@ -604,10 +607,11 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
         icons[record.titleid] = coming_soon if record.reserved else placeholder
         if record.reserved:
             originals[record.titleid] = coming_soon_source
-        if not fetch_icons or record.data["icon_url"] is None:
+        if not fetch_icons or record.icon_source is None:
             continue
         try:
-            content, extension, original = _icon(record.data["icon_url"], icon_cache)
+            content, extension, original = _icon(record.icon_source, icon_cache,
+                                                 lambda data=record.data: artifacts.fetch_icon(data))
             api_icons[record.titleid] = png_icons(original)
             icon_hashes[record.titleid] = hashlib.sha256(original).hexdigest()[:16]
         except (artifacts.DownloadError, OSError, ValueError) as error:
@@ -635,8 +639,8 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
             f".tone-{titleid}{{--tone:{colour}}}\n" for titleid, colour in sorted(accents.items())).encode()
     css = assets.add(f"{theme}", "css", style)
     if icon_cache and icon_cache.is_dir() and fetch_icons:
-        wanted = {hashlib.sha256(r.data["icon_url"].encode()).hexdigest() + ".img"
-                  for r in records if r.data["icon_url"]}
+        wanted = {hashlib.sha256(r.icon_source.encode()).hexdigest() + ".img"
+                  for r in records if r.icon_source}
         for entry in icon_cache.glob("*.img"):
             if entry.name not in wanted:
                 entry.unlink()

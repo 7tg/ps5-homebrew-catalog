@@ -58,7 +58,7 @@ def verify_record(record: Record, github: GitHub, report: Report, previous: Reco
         report.error(name, str(error))
         return
 
-    _verify_icon(name, data["icon_url"], report)
+    _verify_icon(name, data, report)
 
 
 def _check_content_version(name: str, record: Record, previous: Record | None, github: GitHub,
@@ -94,15 +94,16 @@ def _check_license(name: str, license_value: str, repo: dict, report: Report) ->
         report.error(name, f"license {license_value!r} does not match the repository license {detected!r}")
 
 
-def _verify_icon(name: str, url: str, report: Report) -> None:
+def _verify_icon(name: str, record_data: dict, report: Report) -> None:
+    field = "icon_url" if record_data.get("icon_url") else "icon_member"
     try:
-        data = artifacts.fetch_small(url, artifacts.MAX_ICON_BYTES)
+        data = artifacts.fetch_icon(record_data)
     except (artifacts.DownloadError, OSError) as error:
-        report.error(name, f"icon_url could not be fetched: {error}")
+        report.error(name, f"{field} could not be fetched: {error}")
         return
     image_format, warnings = artifacts.inspect_icon(data)
     if image_format is None:
-        report.error(name, "icon_url does not return a PNG, JPEG or WebP image")
+        report.error(name, f"{field} is not a PNG, JPEG or WebP image")
     for warning in warnings:
         report.warning(name, warning)
 

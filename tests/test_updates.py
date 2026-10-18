@@ -95,6 +95,14 @@ class FindUpdateTests(unittest.TestCase):
         self.assertEqual(reason, "")
         self.assertEqual(update.data["version"], "0.6.0")
 
+    def test_an_icon_inside_the_zip_moves_with_the_file(self):
+        inside = dict(OLD, icon_url=None, icon_member="PPSA01234/sce_sys/icon0.png")
+        update, reason = self.find([release("v0.6.0", [asset("example-0.6.0-PPSA01234.zip")])], data=inside)
+        self.assertEqual(reason, "")
+        self.assertIsNone(update.data["icon_url"])
+        self.assertEqual(update.data["icon_member"], "PPSA01234/sce_sys/icon0.png")
+        self.assertEqual(update.data["version"], "0.6.0")
+
     def test_keeps_icon_when_missing_at_new_tag(self):
         update, _ = self.find([release("v0.6.0", [asset("example-0.6.0-PPSA01234.zip")])], icon_exists=False)
         self.assertEqual(update.data["icon_url"], OLD["icon_url"])

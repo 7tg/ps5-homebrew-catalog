@@ -131,7 +131,7 @@ def cached(record: Record, github: GitHub | None, cache: Path | None, fetch=None
         try:
             saved = json.loads(entry.read_text(encoding="utf-8"))
             # An entry without "notes" or "uploader" was written before they were read.
-            if saved.pop("icon_url", None) == record.data["icon_url"] and "notes" in saved and "uploader" in saved:
+            if saved.pop("icon_url", None) == record.icon_source and "notes" in saved and "uploader" in saved:
                 older = Facts(**saved)
                 if github is None or time.time() - entry.stat().st_mtime < FRESH_SECONDS:
                     return older, None
@@ -148,7 +148,7 @@ def cached(record: Record, github: GitHub | None, cache: Path | None, fetch=None
         return (older, None) if older else (Facts(), str(error))
     if entry:
         entry.parent.mkdir(parents=True, exist_ok=True)
-        entry.write_text(json.dumps(asdict(facts) | {"icon_url": record.data["icon_url"]}), encoding="utf-8")
+        entry.write_text(json.dumps(asdict(facts) | {"icon_url": record.icon_source}), encoding="utf-8")
     return facts, None
 
 

@@ -71,6 +71,24 @@ class RemoteZipTests(unittest.TestCase):
             read_zip_member(url, "sce_sys/param.json", 5)
 
 
+class FetchIconTests(unittest.TestCase):
+    def test_icon_url_is_fetched_and_icon_member_is_read_from_the_zip(self):
+        with mock.patch.object(artifacts, "fetch_small", return_value=b"url") as fetch, \
+                mock.patch.object(artifacts, "read_zip_member", return_value=("T/sce_sys/icon0.png", b"zip")) as zipped:
+            self.assertEqual(artifacts.fetch_icon({"icon_url": "https://x/i.png", "artifact_url": "https://x/a.zip"}),
+                             b"url")
+            fetch.assert_called_once_with("https://x/i.png", artifacts.MAX_ICON_BYTES)
+            data = {"icon_url": None, "icon_member": "T/sce_sys/icon0.png", "artifact_url": "https://x/a.zip"}
+            self.assertEqual(artifacts.fetch_icon(data), b"zip")
+            zipped.assert_called_once_with("https://x/a.zip", "T/sce_sys/icon0.png", artifacts.MAX_ICON_BYTES)
+
+    def test_a_member_missing_from_the_zip_is_a_download_error(self):
+        data = {"icon_url": None, "icon_member": "T/sce_sys/icon0.png", "artifact_url": "https://x/a.zip"}
+        with mock.patch.object(artifacts, "read_zip_member", return_value=None):
+            with self.assertRaises(DownloadError):
+                artifacts.fetch_icon(data)
+
+
 class IconTests(unittest.TestCase):
     def png(self, width, height):
         return b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\x0dIHDR" + width.to_bytes(4, "big") + height.to_bytes(4, "big")

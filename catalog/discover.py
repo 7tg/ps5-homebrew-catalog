@@ -274,7 +274,7 @@ def complete(candidate: Candidate, github: GitHub) -> str | None:
         return f"`{file_name}` looks like a desktop build, not a console title"
     if SAMPLE_FOLDER.search(candidate.draft.param_path):
         return f"`{candidate.draft.param_path}` is in a sample or test folder; it may not be the repository's app"
-    if not record["icon_url"]:
+    if not (record["icon_url"] or record.get("icon_member")):
         return "no usable icon next to param.json; pick the app's icon by hand"
     owner, name = candidate.repo.split("/")
     meta = github.repo(owner, name) or {}

@@ -1,9 +1,11 @@
 # Metadata format
 
 Each app is one UTF-8 JSON file at `apps/<TITLEID>.json`, at most 8 KiB,
-containing a single object with **exactly** the twelve fields below. No field
-may be missing and no other fields are allowed. Values are non-empty strings;
-only [reservations](#reservations-coming-soon) use `null`.
+containing a single object with the twelve fields below, plus `icon_member` only
+when the icon is [inside the release file](#icon-inside-the-release-file). No
+field may be missing and no other fields are allowed. Values are non-empty
+strings; only [reservations](#reservations-coming-soon) use `null`, and
+`icon_url` when `icon_member` is present.
 
 | Field | Max length | Rules |
 | --- | ---: | --- |
@@ -56,6 +58,23 @@ twelve fields, with the release-specific ones empty:
 that added it, and each account can hold at most 5. See
 [Reserving a title ID](submitting.md#reserving-a-title-id).
 
+## Icon inside the release file
+
+A repository that does not commit `sce_sys/param.json` ships it only inside the
+release ZIP, and often the icon too. For such an app `icon_url` is `null` and
+`icon_member` names the icon in the ZIP, in the same folder as the `param.json`
+(for example `PPSA01234/sce_sys/icon0.png`). The catalog reads that one file from
+the ZIP without downloading the rest, and applies the same image rules as for
+`icon_url`: PNG, JPEG or WebP, at most 2 MiB.
+
+| Field | Rules |
+| --- | --- |
+| `icon_member` | Relative path inside the ZIP of `artifact_url`, ending in `.png`, `.jpg`, `.jpeg` or `.webp`. No leading `/`, empty or `.`/`..` parts, or backslashes. Needs a `.zip` release file. Absent in a reservation. |
+| `icon_url` | Must be `null` when `icon_member` is present. |
+
+A new release moves the icon with its file; the checks fail if the new ZIP does
+not contain the member.
+
 ## Text rules
 
 All values must be NFC-normalized Unicode without leading or trailing
@@ -68,7 +87,7 @@ spoofed and keeps records safe to render anywhere.
 
 - Duplicate keys are rejected, even with identical values.
 - Values must be strings; numbers are rejected, and `null` is accepted only in
-  reservations.
+  reservations (and for `icon_url` beside an `icon_member`).
 - Formatting is free, but the repository uses two-space indentation and field
   order as shown in the [README](../README.md#record-format).
 

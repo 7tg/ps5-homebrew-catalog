@@ -106,6 +106,16 @@ def read_zip_member(url: str, suffix: str, max_bytes: int) -> tuple[str, bytes] 
         raise DownloadError(f"{url} is not a readable ZIP archive: {error}") from error
 
 
+def fetch_icon(data: dict) -> bytes:
+    """The bytes of a record's icon: its icon_url, or the file icon_member names inside the release ZIP."""
+    if data.get("icon_url"):
+        return fetch_small(data["icon_url"], MAX_ICON_BYTES)
+    found = read_zip_member(data["artifact_url"], data["icon_member"], MAX_ICON_BYTES)
+    if found is None:
+        raise DownloadError(f"{data['icon_member']} is not in {data['artifact_url']}")
+    return found[1]
+
+
 def inspect_icon(data: bytes) -> tuple[str | None, list[str]]:
     """Return (format, warnings) for image bytes; format None means not an accepted image."""
     warnings = []
