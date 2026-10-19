@@ -97,8 +97,13 @@ class SiteBuildTests(unittest.TestCase):
                          ("PPSA01234-other", "PPSA01234", ["PPSA01234"]))
         self.assertEqual(second["page"], "https://catalog.example/app/PPSA01234-other/")
         self.assertTrue((self.out / "app" / "PPSA01234-other" / "index.html").is_file())
-        versions = json.loads((api / "versions.json").read_text(encoding="utf-8"))["apps"]
-        self.assertIn("PPSA01234-other", versions)
+        # Released stores read only "apps", and refuse a title ID twice or a key that isn't one.
+        index = json.loads((api / "index.json").read_text(encoding="utf-8"))
+        self.assertEqual([a["id"] for a in index["apps"]], ["PPSA01234", "PPSA04321", "PPSA05555"])
+        self.assertEqual([a["id"] for a in index["shared"]], ["PPSA01234-other"])
+        versions = json.loads((api / "versions.json").read_text(encoding="utf-8"))
+        self.assertNotIn("PPSA01234-other", versions["apps"])
+        self.assertIn("PPSA01234-other", versions["shared"])
 
     def test_withdrawn_apps_redirect_to_the_front_page(self):
         from catalog import site

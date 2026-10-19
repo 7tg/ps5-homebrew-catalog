@@ -504,7 +504,7 @@ def write_api(root: Path, url: str, records: list[Record], report: Report, *, up
     from . import notes as release_notes
     from datetime import datetime, timezone
     large, small = API_ICON_SIZES
-    index, versions = [], {}
+    index, versions, shared_index, shared_versions = [], {}, [], {}
     sharing: dict[str, list[str]] = {}
     for record in records:
         sharing.setdefault(record.titleid, []).append(record.id)
@@ -557,16 +557,22 @@ def write_api(root: Path, url: str, records: list[Record], report: Report, *, up
             "icon_hash": icon_hashes.get(rid) if icon else None,
         }
         _write_json(root / "apps" / f"{rid}.json", app)
-        index.append({key: app[key] for key in (
+        entry = ({key: app[key] for key in (
             "id", "titleid", "status", "conflicts_with", "name", "kind", "category", "author", "version", "content_version", "format", "size",
             "released", "updated", "added", "icon_small", "icon_hash")}
             | {"sandbox": ((safety or {}).get(rid) or {}).get("sandbox")})
+        # A store released before shared title IDs refuses an index with a title ID twice and a
+        # versions file with a key that isn't a title ID, so the apps that share one go in "shared".
+        (index if record.id == record.titleid else shared_index).append(entry)
         if not record.reserved:
-            versions[rid] = {"content_version": facts.content_version, "version": d["version"]}
+            (versions if record.id == record.titleid else shared_versions)[rid] = {
+                "content_version": facts.content_version, "version": d["version"]}
     _write_json(root / "index.json", {
         "schema": API_SCHEMA, "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "commit": commit, "count": len(index), "apps": index})
-    _write_json(root / "versions.json", {"schema": API_SCHEMA, "apps": versions})
+        "commit": commit, "count": len(index) + len(shared_index), "apps": index,
+        **({"shared": shared_index} if shared_index else {})})
+    _write_json(root / "versions.json", {"schema": API_SCHEMA, "apps": versions,
+                                         **({"shared": shared_versions} if shared_versions else {})})
     # The news is signed by itself and stays out of the manifest (catalog/news.py).
     from . import news as catalog_news
     _write_json(root / catalog_news.FILE, {"schema": API_SCHEMA, "news": (news or [])[:catalog_news.PUBLISHED]})
