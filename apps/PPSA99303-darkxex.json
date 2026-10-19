@@ -1,0 +1,14 @@
+{
+  "titleid": "PPSA99303",
+  "name": "Quake3e TEST duplicate",
+  "kind": "game",
+  "category": "pc-ports",
+  "description": "TEMPORARY test entry for apps that share a title ID. It has no real release and will be removed.",
+  "license": "GPL-3.0",
+  "author": "darkxex",
+  "version": "0.0.0-test",
+  "source_repo": "https://github.com/darkxex/ps5-homebrew-catalog",
+  "artifact_url": "https://github.com/darkxex/ps5-homebrew-catalog/releases/download/v0.0.0-test/PPSA99303.zip",
+  "sha256": "00000000000000000000000000000000000000000000000000000000000000aa",
+  "icon_url": "https://raw.githubusercontent.com/griches/PS5_Quake3e/v1.2.0/ps5/sce_sys/icon0.png"
+}
