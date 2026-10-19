@@ -139,8 +139,9 @@ def release_bump_reasons(old: Record, new: Record, github: GitHub, author: str |
     With an author, it must also be the app's developer; the bot's pull request passes none."""
     reasons = []
     try:
-        if not is_release_bump(old, new, github):
-            reasons.append("it changes more than the release (version, file, sha256, icon), "
+        # The description may change only with an author, who must also own the repository.
+        if not is_release_bump(old, new, github, ("description",) if author is not None else ()):
+            reasons.append("it changes more than the release (version, file, sha256, icon, description), "
                            f"or the release is not the newest of {new.owner}/{new.repo}")
         if author is not None and not owns(author, new, github):
             reasons.append(f"@{author} does not own {new.owner}/{new.repo}")

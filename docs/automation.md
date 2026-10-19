@@ -82,8 +82,8 @@ squash-merged by the catalog's GitHub App when **all** of this holds:
 
 - it changes exactly one file, an `apps/<TITLEID>.json` (or `<TITLEID>-<owner>.json`): a removal or any other file always
   waits for a maintainer;
-- **a release bump** (the file exists): only `version`, `artifact_url`, `sha256` and `icon_url`
-  differ from the listed record, the file is a new one, it is a release file of the same
+- **a release bump** (the file exists): only `version`, `artifact_url`, `sha256`, `icon_url` and
+  `description` differ from the listed record, the file is a new one, it is a release file of the same
   `source_repo`, a changed icon stays in that repository, and the release is the **newest** one
   of that repository;
 - **a new app** (the file is added, and is not a reservation): the file is a release file of its

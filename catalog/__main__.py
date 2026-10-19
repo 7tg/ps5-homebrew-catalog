@@ -486,8 +486,8 @@ def cmd_automerge(args) -> int:
                              ("A new app by a developer who already has one in the catalog, from their own "
                               "repository; the submission check and the release scan passed."
                               if adds else
-                              "A release bump by the app's developer: only the version, file, sha256 and icon "
-                              "changed, the release is the newest of the app's repository, and the submission "
+                              "A release bump by the app's developer: only the version, file, sha256, icon and "
+                              "description changed, the release is the newest of the app's repository, and the submission "
                               "check and the release scan passed.")
                              + " Merged automatically; it is published with the catalog's next publication.")
         bot.merge_pull(repository, number, sha, f"{pull['title']} (#{number})")
