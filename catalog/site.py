@@ -739,7 +739,7 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
         if not others:
             return "", ""
         links = ", ".join(f'<a href="{e(page_url(r))}">{e(r.data["name"])}</a>' for r in others)
-        chip = '<li class="chips__warn">The ID is not unique</li>'
+        chip = "<li>The ID is not unique</li>"
         note = (f'<p class="idnote">Another app is listed with the title ID <code>{e(record.titleid)}</code>: {links}. '
                 'A console holds one app per title ID, so installing this one replaces the other and they share '
                 'save data.</p>')

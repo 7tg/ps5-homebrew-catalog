@@ -356,7 +356,6 @@ html:not(.js) .sort { display: none; }
 .chips li { display: grid; place-items: center; height: calc(42 * var(--u)); min-height: 30px; padding: 0 calc(18 * var(--u)); border: 1.5px solid rgba(244, 239, 230, 0.22); border-radius: 999px; background: rgba(244, 239, 230, 0.08); font: 600 calc(20 * var(--u))/1 var(--body); color: rgba(244, 239, 230, 0.88); }
 .chips li:empty { display: none; }
 .chips__caps { text-transform: uppercase; }
-.chips li.chips__warn { border-color: rgba(255, 209, 102, 0.7); background: rgba(255, 209, 102, 0.1); color: var(--accent); }
 .idnote { margin: calc(14 * var(--u)) 0 0; max-width: 46em; font-size: calc(20 * var(--u)); line-height: 1.35; color: rgba(244, 239, 230, 0.7); }
 .idnote a { color: var(--accent); }
 /* Like and Comment: the way to the app's discussion, with what is there so far. */
