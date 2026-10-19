@@ -470,18 +470,17 @@ def cmd_automerge(args) -> int:
     bot = GitHub(os.environ["MERGE_TOKEN"])
     repository = os.environ["GITHUB_REPOSITORY"]
     try:
-        bot.approve_pull(repository, number, sha,
-                         ("A new app by a developer who already has one in the catalog, from their own "
-                          "repository; the submission check and the release scan passed."
-                          if adds else
-                          "The catalog bot's release bumps: for every app only the version, file, sha256 and icon "
-                          "changed, the release is the newest of the app's repository, and the submission "
-                          "check and the release scan passed."
-                          if by_bot else
-                          "A release bump by the app's developer: only the version, file, sha256 and icon "
-                          "changed, the release is the newest of the app's repository, and the submission "
-                          "check and the release scan passed.")
-                         + " Merged automatically; it is published with the catalog's next publication.")
+        # The bot's own pull request cannot be approved by the bot (GitHub refuses a review by the
+        # author); the repository's ruleset lets the app merge it through a pull request instead.
+        if not by_bot:
+            bot.approve_pull(repository, number, sha,
+                             ("A new app by a developer who already has one in the catalog, from their own "
+                              "repository; the submission check and the release scan passed."
+                              if adds else
+                              "A release bump by the app's developer: only the version, file, sha256 and icon "
+                              "changed, the release is the newest of the app's repository, and the submission "
+                              "check and the release scan passed.")
+                             + " Merged automatically; it is published with the catalog's next publication.")
         bot.merge_pull(repository, number, sha, f"{pull['title']} (#{number})")
         report.notice(name, f"merged: @{author} " + ("added another app of their own" if adds
                                                       else "moved apps to their newest release" if by_bot
