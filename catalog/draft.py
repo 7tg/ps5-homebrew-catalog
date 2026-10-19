@@ -17,7 +17,7 @@ from urllib.parse import quote, urlsplit
 
 from . import artifacts
 from .github import GitHub
-from .records import CATEGORIES, FIELDS, TITLE_ID, UNLICENSED, load_catalog, record_id, tag_version
+from .records import CATEGORIES, FIELDS, TITLE_ID, UNLICENSED, load_catalog, record_id, repo_parts, tag_version
 from .report import Report
 from .updates import newest_release
 
@@ -200,6 +200,10 @@ def draft_record(repo_value: str, github: GitHub, apps_dir: Path, tag: str | Non
         if other.data["source_repo"] and other.data["source_repo"].casefold() == record["source_repo"].casefold():
             draft.blockers.append(f"{record['source_repo']} is already listed as {other.data['name']!r} ({other.id})")
     sharing = [r for r in existing if r.titleid == titleid]
+    for other in sharing:
+        if other.data["source_repo"] and repo_parts(other.data["source_repo"])[0].casefold() == owner.casefold():
+            draft.blockers.append(f"{titleid} is already used by {other.data['name']!r} ({other.id}), from the same "
+                                  "owner; change the title ID of one of the two apps")
     if sharing:
         draft.todo.append(f"{titleid} is already used by {sharing[0].data['name']!r}; the record is saved as "
                           f"apps/{record_id(record, {r.id for r in existing})}.json, and both apps can't be "

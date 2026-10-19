@@ -150,6 +150,17 @@ class RecordTests(unittest.TestCase):
         self.assertFalse(report.failed, report.items)
         self.assertEqual(sorted(r.id for r in records), ["PPSA01234", "PPSA01234-other"])
 
+    def test_same_owner_cannot_share_a_title_id(self):
+        write_record(self.apps, record())
+        write_record(self.apps, record(
+            name="Other App", sha256="b" * 64, source_repo="https://github.com/Example/other-app",
+            artifact_url="https://github.com/Example/other-app/releases/download/01.000.000/PPSA01234.zip"),
+            "PPSA01234-example.json")
+        report = Report()
+        load_catalog(self.apps, report)
+        messages = [m for level, _, m in report.items if level == "error"]
+        self.assertTrue(any("from the same owner; change the title ID" in m for m in messages), messages)
+
     def test_catalog_uniqueness_and_stray_files(self):
         write_record(self.apps, record())
         write_record(self.apps, record(titleid="PPSA04321", name="EXAMPLE APP",

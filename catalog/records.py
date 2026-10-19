@@ -352,4 +352,17 @@ def load_catalog(apps_dir: Path, report: Report) -> list[Record]:
                 report.error(f"apps/{record.path.name}", f"{field} duplicates {seen[key]}")
             else:
                 seen[key] = f"apps/{record.path.name}"
+
+    # One developer can't list two apps under one title ID: they can just change it.
+    owners: dict[tuple[str, str], str] = {}
+    for record in records:
+        if record.data["source_repo"] is None:
+            continue
+        key = (record.titleid, repo_parts(record.data["source_repo"])[0].casefold())
+        if key in owners:
+            report.error(f"apps/{record.path.name}",
+                         f"{record.titleid} is already used by {owners[key]}, from the same owner; "
+                         "change the title ID of one of the two apps")
+        else:
+            owners[key] = f"apps/{record.path.name}"
     return records
