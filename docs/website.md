@@ -42,6 +42,19 @@ dist/
   hue in the stylesheet as that app's accent. This is the picture ProsperoStore
   makes on the console, by the same rules. A grey icon gets the theme's violet.
   It needs Pillow; without it every app gets the theme's own picture.
+- **Languages.** A flag at the top right (a button in TV mode's rail) changes the
+  page between English, Spanish, French, Portuguese, Japanese and German. Only the
+  interface changes: its words, the names of the categories and kinds, dates and
+  plurals. The records in `apps/` are never translated, so `category` stays
+  `emulators` in the JSON and the page shows "Emuladores", "Émulateurs" and so on
+  from the key; names, descriptions and release notes stay as their developers wrote
+  them. The words live in `site/shared/i18n.js`; the pages are built in English
+  (what search engines and a browser without JavaScript see) and the script
+  translates them with the `data-i18n` attributes of the templates. The choice is
+  kept in the browser (`?lang=es` sets it), then the browser's own language is used.
+  To add a language, copy the English block in that file, translate it and add it to
+  the list at its top; a test checks that every language has every word. The
+  `holo` theme is not translated.
 - **Phones.** The top bar wraps and its tabs scroll sideways, shelves scroll
   with a finger, grids go to two columns and then one, and an app's download
   panel moves up under its name.

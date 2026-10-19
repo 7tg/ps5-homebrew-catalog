@@ -122,7 +122,7 @@ code { font: 0.9em var(--mono); }
   place-items: center;
   height: calc(44 * var(--u));
   min-height: 34px;
-  padding: 0 calc(18 * var(--u));
+  padding: 0 calc(13 * var(--u));
   font: 600 calc(22 * var(--u))/1 var(--body);
   color: rgba(244, 239, 230, 0.52);
   white-space: nowrap;
@@ -142,9 +142,29 @@ code { font: 0.9em var(--mono); }
 }
 .tabs__line.is-shown { opacity: 1; }
 
-.bar__end { display: flex; align-items: center; gap: calc(26 * var(--u)); margin-left: auto; min-width: 0; }
+.bar__end { display: flex; align-items: center; gap: calc(16 * var(--u)); margin-left: auto; min-width: 0; }
 .bar__link { font: 400 calc(20 * var(--u))/1 var(--body); color: rgba(244, 239, 230, 0.55); white-space: nowrap; transition: color 0.2s; }
 .bar__link:hover { color: var(--ink); }
+
+/* The language picker: the flag of the language in use, and a short list of the others. */
+.lang { position: relative; }
+.lang__button, .lang__menu button {
+  display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; height: 36px;
+  border: 1px solid rgba(244, 239, 230, 0.22); border-radius: 999px; background: transparent;
+  color: rgba(244, 239, 230, 0.86); font: 500 14px/1 var(--body); cursor: pointer; white-space: nowrap;
+}
+.lang__button:hover, .lang__button:focus-visible, .lang__button[aria-expanded="true"] { border-color: rgba(244, 239, 230, 0.6); background: rgba(244, 239, 230, 0.06); }
+.lang__flag { font-size: 18px; line-height: 1; }
+.lang__code { letter-spacing: 0.04em; }
+.lang__menu {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; margin: 0; padding: 6px; list-style: none;
+  min-width: 170px; border: 1px solid rgba(244, 239, 230, 0.2); border-radius: 16px;
+  background: #15162f; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+.lang__menu[hidden] { display: none; }
+.lang__menu button { width: 100%; border-color: transparent; border-radius: 10px; padding: 0 12px; }
+.lang__menu button:hover, .lang__menu button:focus-visible { background: rgba(244, 239, 230, 0.1); }
+.lang__menu button[aria-selected="true"] { color: var(--ink); background: rgba(244, 239, 230, 0.06); }
 .find {
   display: flex;
   align-items: center;
