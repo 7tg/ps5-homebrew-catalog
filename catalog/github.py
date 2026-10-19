@@ -13,6 +13,16 @@ USER_AGENT = "ps5-homebrew-catalog-verifier"
 TIMEOUT = 30
 
 
+
+def _reason(error: urllib.error.HTTPError) -> str:
+    """GitHub's own words for a refusal, when it gave any: ': <message>'."""
+    try:
+        message = json.loads(error.read()).get("message", "")
+    except (OSError, ValueError, AttributeError):
+        return ""
+    return f": {message[:300]}" if isinstance(message, str) and message else ""
+
+
 class GitHubError(RuntimeError):
     pass
 
@@ -44,7 +54,8 @@ class GitHub:
                 return None
             if error.code in (403, 429) and error.headers.get("x-ratelimit-remaining") == "0":
                 raise GitHubError("GitHub API rate limit reached; set GITHUB_TOKEN") from error
-            raise GitHubError(f"GitHub API returned HTTP {error.code} for {method} {path}") from error
+            raise GitHubError(f"GitHub API returned HTTP {error.code} for {method} {path}"
+                              + _reason(error)) from error
         except (urllib.error.URLError, TimeoutError, ValueError) as error:
             raise GitHubError(f"GitHub API request failed for {method} {path}: {error}") from error
 
