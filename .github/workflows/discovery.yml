@@ -1,6 +1,6 @@
 name: Discovery
 
-# Daily: searches public GitHub for native PS5 apps the catalog doesn't list
+# Three times a day: searches public GitHub for native PS5 apps the catalog doesn't list
 # yet (see catalog/discover.py). Each app that passes every automated check gets
 # a listing pull request from the catalog's GitHub App on branch
 # listing/<TITLEID>; a maintainer reviews it with the listing runbook and merges
@@ -9,7 +9,7 @@ name: Discovery
 # CATALOG_BOT_CLIENT_ID is set, like the release-update job.
 on:
   schedule:
-    - cron: '53 6 * * *'
+    - cron: '53 6,14,22 * * *'
   workflow_dispatch:
 
 permissions: {}
