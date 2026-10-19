@@ -515,6 +515,11 @@ html:not(.js) .sort { display: none; }
   .notice__go { display: none; }
   .shelf__go { display: none; }
 }
+@media (max-width: 469px) {
+  /* The search no longer fits beside the name and drops under it: it then takes the whole row. */
+  .bar__end { flex: 1 1 100%; }
+  .find { flex: 1 1 auto; width: auto; }
+}
 @media (max-width: 520px) {
   .brand__name { letter-spacing: 3px; }
   .tiles { grid-template-columns: minmax(0, 1fr); }
