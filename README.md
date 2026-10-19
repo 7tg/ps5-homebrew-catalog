@@ -152,13 +152,14 @@ format clients receive.
 
 ## Record format
 
-One file per app, named after its title ID (or `<TITLEID>-<owner>` when a different app already uses that title ID, see [Shared title IDs](docs/metadata.md#shared-title-ids)), with exactly these eleven string fields:
+One file per app, named after its title ID (or `<TITLEID>-<owner>` when a different app already uses that title ID, see [Shared title IDs](docs/metadata.md#shared-title-ids)), with exactly these twelve string fields (`category` is one of the [categories](docs/metadata.md#categories)):
 
 ```json
 {
   "titleid": "PPSA01234",
   "name": "Example App",
   "kind": "app",
+  "category": "utilities",
   "description": "One short sentence about the app.",
   "license": "GPL-3.0",
   "author": "Example Dev",
@@ -175,7 +176,7 @@ Field rules and limits are in **[Metadata format](docs/metadata.md)**.
 ## Reserve a title ID
 
 Title IDs are first come, first served: the first app listed keeps the plain `apps/<TITLEID>.json`, and a different app with the same title ID can still be listed as `apps/<TITLEID>-<owner>.json`. If your app isn't released yet, you can
-claim its title ID now with the same eleven-field record, leaving the links
+claim its title ID now with the same twelve-field record, leaving the links
 empty. The website shows it as **Coming soon**, with no download.
 
 1. Add `apps/<TITLEID>.json` with `source_repo`, `artifact_url` and `icon_url`
@@ -186,6 +187,7 @@ empty. The website shows it as **Coming soon**, with no download.
      "titleid": "PPSA01234",
      "name": "Example Game",
      "kind": "game",
+     "category": "homebrew-games",
      "description": "One short sentence about the game.",
      "license": null,
      "author": "Example Dev",
