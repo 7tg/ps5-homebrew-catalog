@@ -134,6 +134,22 @@ class RecordTests(unittest.TestCase):
         del data["sha256"]
         self.assertRejected(data, "missing field(s): sha256")
 
+    def test_shared_title_id_uses_the_owner_in_the_filename(self):
+        self.assertEqual(self.errors(record(), filename="PPSA01234-example.json"), [])
+        self.assertRejected(record(), "or PPSA01234-example.json when another app", filename="PPSA01234-someone.json")
+        self.assertRejected(reservation(), "a reservation has no owner", filename="PPSA05555-example.json")
+
+    def test_two_apps_with_one_title_id_are_a_valid_catalog(self):
+        write_record(self.apps, record())
+        write_record(self.apps, record(
+            name="Other App", sha256="b" * 64, source_repo="https://github.com/Other/other-app",
+            artifact_url="https://github.com/Other/other-app/releases/download/01.000.000/PPSA01234.zip"),
+            "PPSA01234-other.json")
+        report = Report()
+        records = load_catalog(self.apps, report)
+        self.assertFalse(report.failed, report.items)
+        self.assertEqual(sorted(r.id for r in records), ["PPSA01234", "PPSA01234-other"])
+
     def test_catalog_uniqueness_and_stray_files(self):
         write_record(self.apps, record())
         write_record(self.apps, record(titleid="PPSA04321", name="EXAMPLE APP",

@@ -46,8 +46,10 @@ Your title ID is the app's permanent identity: the record's filename, the
 `titleId` in `sce_sys/param.json`, and the folder name on the console. It is
 four uppercase letters followed by five digits.
 
-- Check that `apps/<TITLEID>.json` does not already exist. Title IDs are
-  first come, first served.
+- Check whether `apps/<TITLEID>.json` already exists. Title IDs are first come,
+  first served. If it belongs to a different app, you can still list yours as
+  `apps/<TITLEID>-<owner>.json` (see [Shared title IDs](metadata.md#shared-title-ids)),
+  but a console can hold only one of the two, so a title ID of your own is better.
 - Don't reuse a template default. `PPSA99999` (the native app boilerplate's
   default) is rejected.
 - Keep it for the life of the app. Changing it makes the console treat the app
@@ -209,7 +211,8 @@ repository and publish a new release; the next scan picks it up, or you can
 | GitHub detects no license | Not an error: the app is listed as `Unlicensed`. Add a `LICENSE` file GitHub recognizes (such as `GPL-3.0` or `MIT`) to show it instead. |
 | No description to draft from | Add a repository description or a short README paragraph saying what the app does. |
 | Native, but no release yet | Publish your first release as above. Only you can do that. |
-| The name or title ID is already listed | Choose a distinct name or title ID; see [Common check failures](#common-check-failures). |
+| The name is already listed | Choose a distinct name; see [Common check failures](#common-check-failures). |
+| The title ID is already listed for another app | Name the file `apps/<TITLEID>-<owner>.json`, or build with a title ID of your own. |
 
 A `.ffpkg` or `.ffpfsc` image isn't accepted yet; use a `.zip`
 ([artifact formats](artifact-formats.md)).
@@ -225,6 +228,7 @@ A `.ffpkg` or `.ffpfsc` image isn't accepted yet; use a `.zip`
 | `no contentVersion found` (warning) | Commit `sce_sys/param.json` with your `titleId` and a `contentVersion` like `01.000.070`, or tag releases with the content version. See [App versions](versioning.md). |
 | `contentVersion … is not higher` (warning) | Raise `contentVersion` in every release; consoles compare it to find updates. |
 | `license ... does not match` | Use the SPDX identifier GitHub shows for your repository. |
+| `filename must be … when another app already uses` | The file is `<TITLEID>.json`, or `<TITLEID>-<owner>.json` with the owner of your `source_repo` in lowercase. |
 | `name duplicates` | Another app already uses that name; choose a distinct one. |
 | `canonical URL` | Match the repository's exact owner/name capitalization. |
 | `may change only apps/` | Remove changes to other files from the PR. |

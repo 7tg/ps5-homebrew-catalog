@@ -152,7 +152,7 @@ format clients receive.
 
 ## Record format
 
-One file per app, named after its title ID, with exactly these eleven string fields:
+One file per app, named after its title ID (or `<TITLEID>-<owner>` when a different app already uses that title ID, see [Shared title IDs](docs/metadata.md#shared-title-ids)), with exactly these eleven string fields:
 
 ```json
 {
@@ -174,7 +174,7 @@ Field rules and limits are in **[Metadata format](docs/metadata.md)**.
 
 ## Reserve a title ID
 
-Title IDs are first come, first served. If your app isn't released yet, you can
+Title IDs are first come, first served: the first app listed keeps the plain `apps/<TITLEID>.json`, and a different app with the same title ID can still be listed as `apps/<TITLEID>-<owner>.json`. If your app isn't released yet, you can
 claim its title ID now with the same eleven-field record, leaving the links
 empty. The website shows it as **Coming soon**, with no download.
 
@@ -215,7 +215,7 @@ check and may be released. Details are in
 | Check | Pull request | Push to `main` | Weekly (daily rotation) |
 | --- | :---: | :---: | :---: |
 | JSON format, fields, text, URLs, uniqueness | ✓ | ✓ | ✓ |
-| Only `apps/<TITLEID>.json` changed, one app per PR | ✓ | | |
+| Only `apps/<TITLEID>.json` or `apps/<TITLEID>-<owner>.json` changed, one app per PR | ✓ | | |
 | Submitter owns the source repository | ✓ | | |
 | Reservations: only the reserving account may change them, 5 per account | ✓ | | |
 | Reservations unchanged for 180 days (report only) | | | ✓ |
@@ -315,7 +315,7 @@ or privately as described in [SECURITY.md](SECURITY.md); it will be withdrawn
 ## Repository layout
 
 ```text
-apps/                 One <TITLEID>.json record per app
+apps/                 One <TITLEID>.json record per app (<TITLEID>-<owner>.json if the title ID is shared)
 catalog/              Checker, verifier, site generator and discovery job (Python standard library)
 keys/                 Public keys the store API is signed with (the private keys are never here)
 discovery/            Repositories the discovery job never proposes (ignore.txt)

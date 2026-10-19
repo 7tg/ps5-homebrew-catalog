@@ -130,7 +130,7 @@
     var params = new URLSearchParams();
     if (state.kind !== "all") params.set("kind", state.kind);
     if (state.sort !== "name") params.set("sort", state.sort);
-    if (state.detail >= 0 && view[state.detail]) params.set("app", view[state.detail].titleid);
+    if (state.detail >= 0 && view[state.detail]) params.set("app", view[state.detail].id);
     var hash = params.toString();
     history.replaceState(null, "", hash ? "#" + hash : location.pathname + location.search);
   }
@@ -254,9 +254,9 @@
   function cycleSort() {
     var i = SORTS.map(function (s) { return s[0]; }).indexOf(state.sort);
     state.sort = SORTS[(i + 1) % SORTS.length][0];
-    var current = view[state.index] && view[state.index].titleid;
+    var current = view[state.index] && view[state.index].id;
     renderGrid();
-    var again = view.map(function (a) { return a.titleid; }).indexOf(current);
+    var again = view.map(function (a) { return a.id; }).indexOf(current);
     state.index = again < 0 ? 0 : again;
     writeHash();
     setFocus(state.zone, state.zone === "rail" ? state.rail : state.index);
@@ -321,7 +321,7 @@
       var comments = make("div", "tv-detail__comments");
       info.appendChild(comments);
       if (app.latest) showComments(comments, app);
-      else commentsFile("apps/" + app.titleid + ".json", function (data) {
+      else commentsFile("apps/" + app.id + ".json", function (data) {
         app.latest = Array.isArray(data.latest) ? data.latest.slice(0, 10) : [];
         app.likes = whole(data.likes);
         app.comments = whole(data.comments);
@@ -389,9 +389,9 @@
     if (gridStale) {
       // The grid behind the details is put in order now, keeping the place on the app that was open.
       gridStale = false;
-      var open = view[index] && view[index].titleid;
+      var open = view[index] && view[index].id;
       renderGrid();
-      var again = view.map(function (a) { return a.titleid; }).indexOf(open);
+      var again = view.map(function (a) { return a.id; }).indexOf(open);
       index = again < 0 ? 0 : again;
     }
     writeHash();
@@ -563,13 +563,13 @@
     state.rail = Math.max(0, railItems.map(function (i) { return i.dataset.kind; }).indexOf(state.kind));
     setFocus(view.length ? "grid" : "rail", 0);
     if (openId) {
-      var index = view.map(function (a) { return a.titleid; }).indexOf(openId);
+      var index = view.map(function (a) { return a.id; }).indexOf(openId);
       if (index >= 0) { setFocus("grid", index); openDetail(index); }
     }
     commentsFile("index.json", function (data) {
       likesKnown = true;
       apps.forEach(function (app) {
-        var entry = (data.apps && data.apps[app.titleid]) || {};
+        var entry = (data.apps && data.apps[app.id]) || {};
         app.likes = whole(entry.likes);
         app.comments = whole(entry.comments);
         app.discussion = discussionAddress(entry.url);
@@ -581,9 +581,9 @@
         return;
       }
       if (state.sort !== "liked") return;
-      var current = view[state.index] && view[state.index].titleid;
+      var current = view[state.index] && view[state.index].id;
       renderGrid();
-      var again = view.map(function (a) { return a.titleid; }).indexOf(current);
+      var again = view.map(function (a) { return a.id; }).indexOf(current);
       state.index = again < 0 ? 0 : again;
       setFocus(state.zone, state.zone === "rail" ? state.rail : state.index);
     });

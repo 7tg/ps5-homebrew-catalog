@@ -1,6 +1,6 @@
 # Metadata format
 
-Each app is one UTF-8 JSON file at `apps/<TITLEID>.json`, at most 8 KiB,
+Each app is one UTF-8 JSON file at `apps/<TITLEID>.json` (or `apps/<TITLEID>-<owner>.json`, see [Shared title IDs](#shared-title-ids)), at most 8 KiB,
 containing a single object with the twelve fields below, plus `icon_member` only
 when the icon is [inside the release file](#icon-inside-the-release-file). No
 field may be missing and no other fields are allowed. Values are non-empty
@@ -9,7 +9,7 @@ strings; only [reservations](#reservations-coming-soon) use `null`, and
 
 | Field | Max length | Rules |
 | --- | ---: | --- |
-| `titleid` | 9 | Four uppercase letters and five digits, e.g. `PPSA01234`. Must equal the filename, and should equal the app's `titleId` in `sce_sys/param.json`. `PPSA99999` is reserved. |
+| `titleid` | 9 | Four uppercase letters and five digits, e.g. `PPSA01234`. Must equal the start of the filename (see [Shared title IDs](#shared-title-ids)), and should equal the app's `titleId` in `sce_sys/param.json`. `PPSA99999` is reserved. |
 | `name` | 64 | Display name. Unique across the catalog, ignoring case. |
 | `kind` | 4 | `app`, `game` or `tool`. |
 | `category` | 16 | One of the keys under [Categories](#categories), such as `emulators` or `video`. |
@@ -102,3 +102,22 @@ size, the release date and the content version are added to the
 [store API](api.md) by the build, from GitHub and from the app's repository, so
 they can't disagree with the release. Release history and compatibility notes
 stay in the developer's repository.
+
+## Shared title IDs
+
+Two different apps can end up with the same title ID, for example when both were
+built from a template. The first one listed keeps `apps/<TITLEID>.json`. A later,
+different app from another developer is listed as `apps/<TITLEID>-<owner>.json`,
+where `<owner>` is the owner of its `source_repo`, in lowercase
+(`apps/PPSA01234-janedoe.json`). The `titleid` field inside stays the plain
+title ID.
+
+- The filename without `.json` is the app's **id**. It is what the website and
+  the [store API](api.md) use to address the app, and it never changes.
+- A reservation always uses the plain title ID: it has no `source_repo` to take an
+  owner from.
+- A console holds one app per title ID. Installing one of two apps that share it
+  replaces the other, and they share save data, so the API lists the other app in
+  `conflicts_with` and a store should warn before installing.
+- Prefer a unique title ID when you can: it is what the console sees, and it avoids
+  the clash altogether.

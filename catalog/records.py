@@ -55,7 +55,9 @@ MAX_LENGTH = {
 RESERVED_TITLE_IDS = {"PPSA99999": "the ps5-native-app-boilerplate default"}
 
 TITLE_ID = re.compile(r"[A-Z]{4}[0-9]{5}")
-RECORD_PATH = re.compile(r"apps/[A-Z]{4}[0-9]{5}\.json")
+# A record's id is its filename: the title ID, plus -<owner> when another app already uses that title ID.
+RECORD_ID = re.compile(r"[A-Z]{4}[0-9]{5}(?:-[a-z0-9-]{1,39})?")
+RECORD_PATH = re.compile(r"apps/[A-Z]{4}[0-9]{5}(?:-[a-z0-9-]{1,39})?\.json")
 SHA256 = re.compile(r"[0-9a-f]{64}")
 VERSION = re.compile(r"[0-9A-Za-z][0-9A-Za-z.+_-]*")
 LICENSE = re.compile(r"[A-Za-z0-9.+-]+(?: (?:AND|OR|WITH) [A-Za-z0-9.+-]+)*")
@@ -76,6 +78,13 @@ class Record:
     @property
     def titleid(self) -> str:
         return self.data["titleid"]
+
+    @property
+    def id(self) -> str:
+        """The record's identity in the catalog and the API: its filename without .json.
+
+        It is the title ID, or TITLEID-owner for an app that shares its title ID with an earlier one."""
+        return self.path.stem
 
     @property
     def icon_source(self) -> str | None:
@@ -290,11 +299,31 @@ def load_record(path: Path, report: Report, display: str | None = None) -> Recor
         report.error(name, "must contain a single JSON object")
         return None
     problems = _field_set_problems(data) or _check_fields(data)
-    if not problems and path.stem != data["titleid"]:
-        problems.append(f"filename must be {data['titleid']}.json to match titleid")
+    if not problems:
+        problems.extend(filename_problems(path.stem, data))
     for problem in problems:
         report.error(name, problem)
     return None if problems else Record(path, data)
+
+
+def record_id(data: dict, taken: set[str]) -> str:
+    """The id (filename) for a new record: its title ID, or TITLEID-owner when `taken` already has it."""
+    if data["titleid"] not in taken:
+        return data["titleid"]
+    return f"{data['titleid']}-{repo_parts(data['source_repo'])[0].lower()}"
+
+
+def filename_problems(stem: str, data: dict) -> list[str]:
+    """The filename is the title ID, or TITLEID-owner when the title ID is shared (owner from source_repo)."""
+    titleid = data["titleid"]
+    if stem == titleid:
+        return []
+    if data["artifact_url"] is None:
+        return [f"filename must be {titleid}.json: a reservation has no owner to tell it apart from other apps"]
+    expected = f"{titleid}-{repo_parts(data['source_repo'])[0].lower()}"
+    if stem != expected:
+        return [f"filename must be {titleid}.json, or {expected}.json when another app already uses {titleid}"]
+    return []
 
 
 def load_catalog(apps_dir: Path, report: Report) -> list[Record]:
@@ -304,8 +333,8 @@ def load_catalog(apps_dir: Path, report: Report) -> list[Record]:
         return []
     records = []
     for path in sorted(apps_dir.iterdir()):
-        if path.suffix != ".json" or not TITLE_ID.fullmatch(path.stem):
-            report.error(f"apps/{path.name}", "only <TITLEID>.json record files belong in apps/")
+        if path.suffix != ".json" or not RECORD_ID.fullmatch(path.stem):
+            report.error(f"apps/{path.name}", "only <TITLEID>.json or <TITLEID>-<owner>.json record files belong in apps/")
             continue
         record = load_record(path, report)
         if record:

@@ -12,7 +12,7 @@ dist/
 ├── 404.html, robots.txt
 ├── index.html                  the catalog: Discover, and a section each for apps, games, tools and coming soon
 ├── tv/                         TV mode: the catalog as a 10-foot interface
-├── app/<TITLEID>/              one page per app: download, install steps, sha256
+├── app/<ID>/                   one page per app (<ID> is the title ID, or <TITLEID>-<owner> when shared): download, install steps, sha256
 ├── api/v1/                     the store API: per-app files, index, versions, PNG icons, signed manifest
 ├── catalog/v1.json             the older single-file feed
 └── assets/                     content-hashed CSS, JS, WebP icons and each app's ambient picture
@@ -46,7 +46,7 @@ dist/
   with a finger, grids go to two columns and then one, and an app's download
   panel moves up under its name.
 - **Updated dates.** Each app shows when its record last changed on `main`,
-  taken from the git history of `apps/<TITLEID>.json`. The build deepens a
+  taken from the git history of `apps/<ID>.json`. The build deepens a
   shallow clone first so dates stay correct in CI.
 - **Release notes.** An app's page shows what its developer wrote on the listed
   GitHub release, read from GitHub at build time (again at most once a day,
@@ -54,6 +54,10 @@ dist/
   it, so only headings, paragraphs and lists are kept: images, links' targets
   and raw HTML are dropped (`catalog/notes.py`). Long notes are cut, with a
   link to the release; a release without notes has no such section.
+- **Shared title ID.** When two listed apps have the same title ID, each one's page
+  shows a **The ID is not unique** chip and a note linking to the other: a console
+  holds one app per title ID, so installing one replaces the other. See
+  [Shared title IDs](metadata.md#shared-title-ids).
 - **Coming soon.** Title ID reservations appear as cards with the shared
   "Coming soon" picture (`site/shared/coming-soon.png`) in place of an icon,
   and no download; see [Reserving a title ID](submitting.md#reserving-a-title-id).

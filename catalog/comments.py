@@ -25,7 +25,8 @@ WITHDRAWN = "Withdrawn"      # where a discussion goes, locked, when its app lea
 LATEST = 10                  # comments kept per app
 MAX_TEXT = 500               # characters kept per comment
 SITE = "https://prosperostore.net"
-MARKER = re.compile(r"<!-- titleid: ([A-Z]{4}[0-9]{5}) -->")
+# The marker keeps its old name; it holds the record's id, which is the title ID for most apps.
+MARKER = re.compile(r"<!-- titleid: ([A-Z]{4}[0-9]{5}(?:-[a-z0-9-]{1,39})?) -->")
 PAUSE = 3.0                  # seconds between two discussions created in a row (GitHub's content limit)
 
 _URL = re.compile(r"(?:https?://|www\.)\S+", re.IGNORECASE)
@@ -102,14 +103,14 @@ def thread_title(record: Record) -> str:
 
 def thread_body(record: Record) -> str:
     return "\n".join([
-        f"Comments and likes for **{record.data['name']}**, listed at {SITE}/app/{record.titleid}/.",
+        f"Comments and likes for **{record.data['name']}**, listed at {SITE}/app/{record.id}/.",
         "",
         "Upvote this discussion (the arrow beside its title) to like the app, and reply below to comment.",
         "",
         f"The catalog only lists this app; its developer maintains it at {record.data['source_repo']}. "
         "Bug reports belong there.",
         "",
-        f"<!-- titleid: {record.titleid} -->",
+        f"<!-- titleid: {record.id} -->",
     ])
 
 
@@ -141,7 +142,7 @@ def plan(records: list[Record], threads: dict[str, Thread]) -> list[tuple]:
     ("create", record), ("restore", thread), ("rename", thread, title) or ("withdraw", thread).
     A discussion a maintainer locked by hand stays locked: only the Withdrawn category is undone.
     """
-    listed = {r.titleid: r for r in records if not r.reserved}
+    listed = {r.id: r for r in records if not r.reserved}
     actions: list[tuple] = []
     for titleid, record in sorted(listed.items()):
         thread = threads.get(titleid)
@@ -171,7 +172,7 @@ def describe(action: tuple) -> str:
 
 def payload(records: list[Record], threads: dict[str, Thread]) -> dict[str, dict]:
     """The files to publish, by path: the index, and one file per listed app that has a discussion."""
-    listed = sorted(r.titleid for r in records if not r.reserved)
+    listed = sorted(r.id for r in records if not r.reserved)
     files: dict[str, dict] = {}
     index: dict[str, dict] = {}
     for titleid in listed:
@@ -180,7 +181,7 @@ def payload(records: list[Record], threads: dict[str, Thread]) -> dict[str, dict
             continue
         index[titleid] = {"discussion": thread.number, "url": thread.url,
                           "likes": thread.likes, "comments": thread.comments}
-        files[f"v1/apps/{titleid}.json"] = {"schema": SCHEMA, "titleid": titleid, **index[titleid],
+        files[f"v1/apps/{titleid}.json"] = {"schema": SCHEMA, "id": titleid, "titleid": titleid[:9], **index[titleid],
                                             "latest": thread.latest}
     files["v1/index.json"] = {"schema": SCHEMA, "apps": index}
     return files

@@ -16,7 +16,7 @@ API itself, and there is no server behind it, only files on a CDN.
 | --- | --- | --- | --- |
 | [`/api/v1/versions.json`](https://prosperostore.net/api/v1/versions.json) | The current version of every available app | about 65 bytes per app | check many installed apps for updates in one request |
 | [`/api/v1/index.json`](https://prosperostore.net/api/v1/index.json) | One compact entry per app, reservations included | about 330 bytes per app | show the catalog as a list |
-| `/api/v1/apps/<TITLEID>.json` | Everything about one app | about 1 KB | show one app, install it, or let an app check itself |
+| `/api/v1/apps/<ID>.json` | Everything about one app. `<ID>` is the app's `id`: its title ID, or `<TITLEID>-<owner>` when another app shares the title ID | about 1 KB | show one app, install it, or let an app check itself |
 | [`/api/v1/manifest.json`](https://prosperostore.net/api/v1/manifest.json) and `manifest.sig` | The hash of every JSON file above, the catalog's sequence number, and a signature over both | about 90 bytes per app | verify that the catalog is genuine before installing from it |
 | [`/api/v1/news.json`](https://prosperostore.net/api/v1/news.json) and `news.sig` | Short messages from the catalog's maintainers, newest first, and a signature over the file | under 64 KB | show what is new; see [News](#news-newsjson) |
 | `/api/v1/icons/<TITLEID>.png` | The app's icon as PNG, at most 512 px on its longer side | varies | show the icon without a WebP decoder |
@@ -71,7 +71,9 @@ The first twelve fields after `schema` are the app's record, exactly as in
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `schema` | integer | Schema revision of this file; see [Versioning of the API](#versioning-of-the-api). |
-| `status` | string | `available`: the app has a release and can be installed. `coming_soon`: the title ID is [reserved](submitting.md#reserving-a-title-id) and nothing can be downloaded yet. `withdrawn`: the app was removed from the catalog in the last 30 days; the file then has only `schema`, `titleid` and `status`, and it is not in the index or the manifest. |
+| `id` | string | The app's identity in the catalog: its title ID, or `<TITLEID>-<owner>` for an app that shares its title ID with an earlier one. Use it for every address (`apps/<id>.json`, `icons/<id>.png`, `app/<id>/`) and as the key in `versions.json`. `titleid` is what the console knows the app as. |
+| `conflicts_with` | array of strings | The `id` of every other listed app with the same `titleid`; empty for almost every app. A console holds one app per title ID, so installing this one replaces those, and they share save data: warn before installing. |
+| `status` | string | `available`: the app has a release and can be installed. `coming_soon`: the title ID is [reserved](submitting.md#reserving-a-title-id) and nothing can be downloaded yet. `withdrawn`: the app was removed from the catalog in the last 30 days; the file then has only `schema`, `id`, `titleid` and `status`, and it is not in the index or the manifest. |
 | `content_version` | string or null | The release's `contentVersion` from its `sce_sys/param.json`, in the PlayStation format `NN.NNN.NNN` (`01.000.070`). **This is the value to compare with an installed copy**; see [Finding updates](#finding-updates). `null` when it isn't known. |
 | `format` | string or null | `zip` for every app accepted now: the app folder in an archive. A listing made before ZIP became the only accepted format can still be `ffpkg` or `ffpfsc` (an image file); a client that installs only `zip` should show such an app as not installable. See [Artifact formats](artifact-formats.md). |
 | `artifact_name` | string or null | File name of the download. |
@@ -463,6 +465,7 @@ site's header rules.
 | 3 | 2026-10-11 | Added `added` to app files and index entries, and the signed `news.json` beside the catalog (not in the manifest). `schema` stays 3. |
 | 3 | 2026-10-16 | Added `category` to app files (it is a record field) and index entries: the app's shelf, one of the keys in [Metadata format](metadata.md#categories). `schema` stays 3. |
 | 3 | 2026-10-05 | Added `release_notes` and `release_notes_truncated` to app files. `schema` stays 3: a released store accepts only that exact number, so it is raised with the next change that store has been prepared for. Test for the field, not for the number. |
+| 3 | 2026-10-18 | Added `id` and `conflicts_with` to app files and index entries: two different apps may share a title ID, and `id` tells them apart. `id` equals `titleid` for every app that has its title ID to itself, and `schema` stays 3. |
 
 ## Where the values come from
 

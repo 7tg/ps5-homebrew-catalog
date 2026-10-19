@@ -17,7 +17,7 @@ from urllib.parse import quote, urlsplit
 
 from . import artifacts
 from .github import GitHub
-from .records import CATEGORIES, FIELDS, TITLE_ID, UNLICENSED, load_catalog, tag_version
+from .records import CATEGORIES, FIELDS, TITLE_ID, UNLICENSED, load_catalog, record_id, tag_version
 from .report import Report
 from .updates import newest_release
 
@@ -195,12 +195,18 @@ def draft_record(repo_value: str, github: GitHub, apps_dir: Path, tag: str | Non
     draft.todo.append("set `category` to one of: " + ", ".join(CATEGORIES))
 
     # Clashes with the catalog.
-    existing = {r.titleid: r for r in load_catalog(apps_dir, Report())}
-    if titleid in existing:
-        draft.blockers.append(f"{titleid} is already listed as {existing[titleid].data['name']!r}")
-    for other in existing.values():
+    existing = load_catalog(apps_dir, Report())
+    for other in existing:
+        if other.data["source_repo"] and other.data["source_repo"].casefold() == record["source_repo"].casefold():
+            draft.blockers.append(f"{record['source_repo']} is already listed as {other.data['name']!r} ({other.id})")
+    sharing = [r for r in existing if r.titleid == titleid]
+    if sharing:
+        draft.todo.append(f"{titleid} is already used by {sharing[0].data['name']!r}; the record is saved as "
+                          f"apps/{record_id(record, {r.id for r in existing})}.json, and both apps can't be "
+                          "installed on one console at the same time")
+    for other in existing:
         if title_name and other.data["name"].casefold() == title_name.casefold():
-            draft.todo.append(f"the name {title_name!r} is already used by {other.titleid}; choose a distinct name")
+            draft.todo.append(f"the name {title_name!r} is already used by {other.id}; choose a distinct name")
 
     section = license_section(github.file_text(owner, name, "README.md", tag) or "")
     if section:

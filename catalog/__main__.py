@@ -16,7 +16,8 @@ from pathlib import Path
 from .automerge import UPDATE_BRANCH
 from .github import GitHub, GitHubError
 from .policy import Change, check_changes, check_publisher, derivative_notes, is_maintainer
-from .records import MAX_FILE_BYTES, RECORD_PATH, Record, icon_source, load_catalog, load_record, repo_parts
+from .records import (MAX_FILE_BYTES, RECORD_PATH, Record, icon_source, load_catalog, load_record, record_id,
+                      repo_parts)
 from .report import Report
 from .verify import newer_release, verify_record
 
@@ -51,14 +52,22 @@ def cmd_check(args) -> int:
     return report.emit("Catalog check", f"{len(records)} record(s) are valid.")
 
 
+def _wanted(names: list[str]) -> set[str]:
+    """The ids or title IDs named on the command line. A title ID selects every app that uses it."""
+    return {n.upper() for n in names}
+
+
+def _is_wanted(record: Record, wanted: set[str]) -> bool:
+    return not wanted or record.titleid in wanted or record.id.upper() in wanted
+
+
 def cmd_verify(args) -> int:
     report = Report()
     records = load_catalog(APPS, report)
-    wanted = {t.upper() for t in args.titleids}
-    unknown = wanted - {r.titleid for r in records}
-    for titleid in sorted(unknown):
-        report.error(f"apps/{titleid}.json", "no valid record with this title ID")
-    selected = [r for r in records if not wanted or r.titleid in wanted]
+    wanted = _wanted(args.titleids)
+    for name in sorted(wanted - {n for r in records for n in (r.id.upper(), r.titleid)}):
+        report.error(f"apps/{name}.json", "no valid record with this title ID or id")
+    selected = [r for r in records if _is_wanted(r, wanted)]
     github = GitHub()
     for record in selected:
         verify_record(record, github, report)
@@ -96,10 +105,10 @@ def cmd_scan(args) -> int:
             _report_scan(scan, args.zip, titleid, report)
         return report.emit("Release scan", "Scanned.")
     records = [r for r in load_catalog(APPS, report) if not r.reserved]
-    wanted = {t.upper() for t in args.titleids}
-    for titleid in sorted(wanted - {r.titleid for r in records}):
-        report.error(f"apps/{titleid}.json", "no listed app with this title ID")
-    selected = [r for r in records if not wanted or r.titleid in wanted]
+    wanted = _wanted(args.titleids)
+    for name in sorted(wanted - {n for r in records for n in (r.id.upper(), r.titleid)}):
+        report.error(f"apps/{name}.json", "no listed app with this title ID or id")
+    selected = [r for r in records if _is_wanted(r, wanted)]
     rows = []       # one line per release, for the overview of a scan of several
     with tempfile.TemporaryDirectory(prefix="catalog-scan-") as tmp:
         for record in selected:
@@ -201,7 +210,7 @@ def cmd_scan_pr(args) -> int:
     reviewed. Only an archive that is unsafe to unpack fails the check; everything else is a report
     for the reviewer.
     """
-    from .records import record_problems
+    from .records import filename_problems, record_problems
     from .scan import check_helpers, compare, load_approved, scan_release
     approved = load_approved()
     event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
@@ -223,7 +232,7 @@ def cmd_scan_pr(args) -> int:
                 continue        # the submission check reports a record that can't be read
             if not isinstance(data, dict) or record_problems(data) or data.get("artifact_url") is None:
                 continue
-            if Path(change.path).stem != data["titleid"]:
+            if filename_problems(Path(change.path).stem, data):
                 continue
             old_path = ROOT / change.path
             listed = None
@@ -276,7 +285,7 @@ def cmd_health(args) -> int:
         selected = records
     else:
         day = now.weekday() if args.slice == "today" else int(args.slice)
-        selected = [r for r in records if health_slice(r.titleid) == day]
+        selected = [r for r in records if health_slice(r.id) == day]
         report.notice("catalog", f"checking slice {day} of {HEALTH_SLICES}: {len(selected)} of "
                                  f"{len(records)} records (every record is checked once a week)")
     github = GitHub()
@@ -528,7 +537,7 @@ def updates_pr_text(updates: list) -> tuple[str, str]:
     else:
         shown = ", ".join(names[:3]) + (f" and {len(names) - 3} more" if len(names) > 3 else "")
         title = f"Update {len(names)} apps: {shown}"
-    state = json.dumps({u.record.titleid: u.tag for u in updates}, sort_keys=True)
+    state = json.dumps({u.record.id: u.tag for u in updates}, sort_keys=True)
     body = "\n".join([
         f"Automated updates from the daily release check: {len(updates)} app(s) have a newer release.",
         "",
@@ -651,12 +660,12 @@ def cmd_updates(args) -> int:
     from .updates import find_gone, find_update
     report = Report()
     records = load_catalog(APPS, report)
-    wanted = {t.upper() for t in args.titleids}
+    wanted = _wanted(args.titleids)
     github = GitHub()
     found = []
     gone = []
     for record in records:
-        if wanted and record.titleid not in wanted:
+        if not _is_wanted(record, wanted):
             continue
         name = f"apps/{record.path.name}"
         try:
@@ -712,17 +721,19 @@ def open_listing_pr(candidate, repository: str, github: GitHub, open_files: dict
     from .discover import REJECTED, pull_request_text
     from .updates import render
     titleid = candidate.record["titleid"]
-    path = f"apps/{titleid}.json"
-    branch = LISTING_BRANCH.format(titleid=titleid)
+    taken = {r.id for r in load_catalog(APPS, Report())}
+    record_name = record_id(candidate.record, taken)
+    path = f"apps/{record_name}.json"
+    branch = LISTING_BRANCH.format(titleid=record_name)
     if path in open_files:
-        return f"#{open_files[path]} already proposes {titleid}"
+        return f"#{open_files[path]} already proposes {record_name}"
     if github.closed_pull_titles(repository, branch):
         return REJECTED
     title, body = pull_request_text(candidate, repository)
     git("fetch", "--quiet", "origin", "main")
     git("checkout", "--quiet", "-B", branch, "origin/main")
     try:
-        (APPS / f"{titleid}.json").write_text(render(candidate.record), encoding="utf-8", newline="\n")
+        (APPS / f"{record_name}.json").write_text(render(candidate.record), encoding="utf-8", newline="\n")
         git("add", path)
         git("commit", "--quiet", "-m", title)
         git("push", "--quiet", "--force", "origin", f"{branch}:{branch}")
@@ -819,7 +830,8 @@ def cmd_draft(args) -> int:
         return 1
     print(render_draft(draft))
     if args.write and not draft.blockers and draft.record["titleid"]:
-        target = APPS / f"{draft.record['titleid']}.json"
+        taken = {r.id for r in load_catalog(APPS, Report())}
+        target = APPS / f"{record_id(draft.record, taken)}.json"
         if target.exists():
             print(f"not written: {target.relative_to(ROOT)} already exists", file=sys.stderr)
             return 1

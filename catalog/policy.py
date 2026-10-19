@@ -31,7 +31,7 @@ def check_changes(changes: list[Change], maintainer: bool, report: Report) -> li
     for change in changes:
         if change.path.startswith("apps/"):
             if not RECORD_PATH.fullmatch(change.path):
-                report.error(change.path, "only apps/<TITLEID>.json files may be added under apps/")
+                report.error(change.path, "only apps/<TITLEID>.json or apps/<TITLEID>-<owner>.json files may be added under apps/")
                 continue
             if change.status != "D" and change.mode != REGULAR_FILE_MODE:
                 report.error(change.path, "must be a regular, non-executable file")
@@ -41,7 +41,7 @@ def check_changes(changes: list[Change], maintainer: bool, report: Report) -> li
                 continue
             records.append(change)
         elif not maintainer:
-            report.error(change.path, "community pull requests may change only apps/<TITLEID>.json; "
+            report.error(change.path, "community pull requests may change only apps/<TITLEID>.json or apps/<TITLEID>-<owner>.json; "
                                       "open an issue for other changes")
     if not maintainer and len([c for c in records if c.status != "D"]) > 1:
         report.error("apps", "submit one app per pull request")
@@ -70,7 +70,7 @@ def derivative_notes(new: Record, listed: list[Record], github: GitHub) -> list[
     never errors: a fork that adds a renderer or features of its own is welcome.
     """
     notes = []
-    others = [r for r in listed if r.titleid != new.titleid]
+    others = [r for r in listed if r.id != new.id]
     if not new.reserved:
         try:
             repo = github.repo(new.owner, new.repo) or {}
@@ -132,7 +132,8 @@ def check_publisher(author: str, maintainer: bool, old: Record | None, new: Reco
             report.warning(name, f"moves {new.titleid} from {old.owner} to {new.owner}")
         else:
             report.error(name, f"{new.titleid} is registered to {old.owner}; ownership transfers "
-                               "require a maintainer")
+                               f"require a maintainer. If this is a different app, add it as "
+                               f"apps/{new.titleid}-{new.owner.lower()}.json instead")
             return
     if new.reserved:
         if old is None and not maintainer and held >= MAX_RESERVATIONS_PER_ACCOUNT:

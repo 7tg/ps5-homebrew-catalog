@@ -36,7 +36,7 @@
     if (!tv || !script) return;
     var base = new URL(script.src, window.location.href).pathname.replace(/assets\/[^/]*$/, "");
     var path = window.location.pathname;
-    var app = path.slice(base.length).match(/^app\/([A-Z]{4}[0-9]{5})\/?$/);
+    var app = path.slice(base.length).match(/^app\/([A-Z]{4}[0-9]{5}(?:-[a-z0-9-]+)?)\/?$/);
     var state = new URLSearchParams();
     if (app) state.set("app", app[1]);
     else if (path === base || path === base + "index.html") {
@@ -134,7 +134,7 @@
     var apps = items.map(function (item) {
       return {
         item: item,
-        id: item.getAttribute("data-titleid"),
+        id: item.getAttribute("data-id"),
         name: item.getAttribute("data-title"),
         sortName: item.getAttribute("data-name"),
         author: item.getAttribute("data-by"),

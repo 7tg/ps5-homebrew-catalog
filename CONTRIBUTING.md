@@ -3,7 +3,7 @@
 ## Listing or updating an app
 
 Follow **[Submitting an app](docs/submitting.md)**. App pull requests may change
-only `apps/<TITLEID>.json`, one app at a time, and must come from the account
+only `apps/<TITLEID>.json` (or `apps/<TITLEID>-<owner>.json` when another app has the title ID), one app at a time, and must come from the account
 that owns the app's source repository.
 
 ## Reporting a problem with a listing

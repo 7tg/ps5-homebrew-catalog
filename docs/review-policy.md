@@ -59,13 +59,16 @@ time.
 
 ## Title IDs
 
-- Title IDs are first come, first served; the first merged record owns the ID.
+- Title IDs are first come, first served; the first merged record owns the plain
+  `apps/<TITLEID>.json`. A different app with the same title ID is listed as
+  `apps/<TITLEID>-<owner>.json` and shown next to the first, with a warning that a
+  console holds one of them ([Shared title IDs](metadata.md#shared-title-ids)).
 - Only the owner of the listed `source_repo` can update a record (automated).
 - An app can move to a new repository owner only through a maintainer, usually
   after the current owner confirms in an ownership transfer issue.
 - If a listed title ID is shown to belong to an earlier, widely distributed app
   by another developer, maintainers resolve the dispute case by case and may ask
-  the newer app to change its ID.
+  the newer app to change its ID instead of sharing it.
 
 ## Reservations
 

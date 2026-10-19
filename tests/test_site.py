@@ -81,15 +81,34 @@ class SiteBuildTests(unittest.TestCase):
         self.assertNotIn(" 302", redirects)
         self.assertFalse((root / "list").exists())
 
+    def test_two_apps_can_share_a_title_id(self):
+        write_record(self.apps, record(
+            name="Other App", sha256="c" * 64, author="Other Dev",
+            source_repo="https://github.com/other/other-app",
+            artifact_url="https://github.com/other/other-app/releases/download/01.000.000/PPSA01234.zip"),
+            "PPSA01234-other.json")
+        count, report = self.build()
+        self.assertEqual((count, report.failed), (4, False))
+        api = self.out / "api" / "v1"
+        first = json.loads((api / "apps" / "PPSA01234.json").read_text(encoding="utf-8"))
+        second = json.loads((api / "apps" / "PPSA01234-other.json").read_text(encoding="utf-8"))
+        self.assertEqual((first["id"], first["conflicts_with"]), ("PPSA01234", ["PPSA01234-other"]))
+        self.assertEqual((second["id"], second["titleid"], second["conflicts_with"]),
+                         ("PPSA01234-other", "PPSA01234", ["PPSA01234"]))
+        self.assertEqual(second["page"], "https://catalog.example/app/PPSA01234-other/")
+        self.assertTrue((self.out / "app" / "PPSA01234-other" / "index.html").is_file())
+        versions = json.loads((api / "versions.json").read_text(encoding="utf-8"))["apps"]
+        self.assertIn("PPSA01234-other", versions)
+
     def test_withdrawn_apps_redirect_to_the_front_page(self):
         from catalog import site
         log = "apps/PPSA09999.json\n\napps/PPSA01234.json\napps/notes.txt\n"
         with mock.patch.object(site, "_git", lambda *args: log):
             # PPSA01234 was removed once and is listed again: it keeps its page.
-            self.assertEqual(site.withdrawn_titleids(self.apps, {"PPSA01234"}), ["PPSA09999"])
+            self.assertEqual(site.withdrawn_ids(self.apps, {"PPSA01234"}), ["PPSA09999"])
         with mock.patch.object(site, "_git", lambda *args: None):
-            self.assertEqual(site.withdrawn_titleids(self.apps, set()), [])
-        with mock.patch.object(site, "withdrawn_titleids", lambda apps, listed: ["PPSA09999"]):
+            self.assertEqual(site.withdrawn_ids(self.apps, set()), [])
+        with mock.patch.object(site, "withdrawn_ids", lambda apps, listed: ["PPSA09999"]):
             self.build()
         redirects = (self.out / "_redirects").read_text(encoding="utf-8")
         self.assertIn("/app/PPSA09999/ / 302", redirects)
@@ -97,7 +116,7 @@ class SiteBuildTests(unittest.TestCase):
         # Its API file says so, and the signed manifest doesn't name it.
         api = self.out / "api" / "v1"
         self.assertEqual(json.loads((api / "apps" / "PPSA09999.json").read_text(encoding="utf-8")),
-                         {"schema": 3, "titleid": "PPSA09999", "status": "withdrawn"})
+                         {"schema": 3, "id": "PPSA09999", "titleid": "PPSA09999", "status": "withdrawn"})
         self.assertNotIn("apps/PPSA09999.json", json.loads((api / "manifest.json").read_text(encoding="utf-8"))["files"])
 
     def test_footer_shows_when_the_catalog_last_changed(self):

@@ -115,7 +115,7 @@ def _git(*args: str) -> str | None:
 WITHDRAWN_DAYS = 30  # how long a withdrawn app's page keeps redirecting
 
 
-def withdrawn_titleids(apps_dir: Path, listed: set[str]) -> list[str]:
+def withdrawn_ids(apps_dir: Path, listed: set[str]) -> list[str]:
     """Title IDs whose record was removed in the last WITHDRAWN_DAYS and isn't listed now, from git history.
 
     A withdrawn app's API file is replaced by a small withdrawn file at the same address, so a
@@ -123,7 +123,8 @@ def withdrawn_titleids(apps_dir: Path, listed: set[str]) -> list[str]:
     """
     log = _git("log", f"--since={WITHDRAWN_DAYS} days ago", "--diff-filter=D", "--name-only", "--format=",
                "--", str(apps_dir))
-    removed = {Path(line).stem for line in (log or "").splitlines() if re.fullmatch(r".*/[A-Z]{4}[0-9]{5}\.json", line)}
+    removed = {Path(line).stem for line in (log or "").splitlines()
+               if re.fullmatch(r".*/[A-Z]{4}[0-9]{5}(?:-[a-z0-9-]{1,39})?\.json", line)}
     return sorted(removed - listed)
 
 
@@ -466,7 +467,7 @@ def load_scans(directory: Path | None, records: list[Record]) -> dict[str, dict]
         except (OSError, ValueError):
             data = None
         if data:
-            found[record.titleid] = data
+            found[record.id] = data
     return found
 
 
@@ -504,9 +505,12 @@ def write_api(root: Path, url: str, records: list[Record], report: Report, *, up
     from datetime import datetime, timezone
     large, small = API_ICON_SIZES
     index, versions = [], {}
-    for record in sorted(records, key=lambda r: r.titleid):
-        d, titleid, name = record.data, record.titleid, f"apps/{record.path.name}"
-        facts, problem = (known or {}).get(titleid) or release_facts.cached(record, github, cache)
+    sharing: dict[str, list[str]] = {}
+    for record in records:
+        sharing.setdefault(record.titleid, []).append(record.id)
+    for record in sorted(records, key=lambda r: r.id):
+        d, rid, name = record.data, record.id, f"apps/{record.path.name}"
+        facts, problem = (known or {}).get(rid) or release_facts.cached(record, github, cache)
         if problem:
             report.warning(name, f"release facts not included in the API this time: {problem}")
         elif github is not None and not record.reserved and facts.content_version is None:
@@ -515,18 +519,21 @@ def write_api(root: Path, url: str, records: list[Record], report: Report, *, up
         icon = {}
         # The address carries the icon's fingerprint, so it changes when the picture does: a cache
         # that still holds the previous picture can't answer for the new address.
-        fingerprint = icon_hashes.get(titleid)
+        fingerprint = icon_hashes.get(rid)
         version = f"?v={fingerprint}" if fingerprint else ""
         for size, suffix in ((large, ""), (small, f"-{small}")):
-            content = icons.get(titleid, {}).get(size)
+            content = icons.get(rid, {}).get(size)
             if content:
                 (root / "icons").mkdir(parents=True, exist_ok=True)
-                (root / "icons" / f"{titleid}{suffix}.png").write_bytes(content)
-                icon[size] = f"{url}icons/{titleid}{suffix}.png{version}"
+                (root / "icons" / f"{rid}{suffix}.png").write_bytes(content)
+                icon[size] = f"{url}icons/{rid}{suffix}.png{version}"
         app = {
             "schema": API_SCHEMA,
+            "id": record.id,
             **d,
             "status": "coming_soon" if record.reserved else "available",
+            # Other listed apps with the same title ID: a console can hold only one of them.
+            "conflicts_with": sorted(set(sharing[record.titleid]) - {record.id}),
             "content_version": facts.content_version,
             "format": None if record.reserved else artifact_format(record),
             "artifact_name": None if record.reserved else unquote(record.asset_name),
@@ -539,7 +546,7 @@ def write_api(root: Path, url: str, records: list[Record], report: Report, *, up
             "release_notes": notes_text,
             "release_notes_truncated": notes_cut if notes_text else None,
             # What the release scan found (docs/api.md, Safety); null when the release wasn't scanned.
-            "safety": (safety or {}).get(titleid),
+            "safety": (safety or {}).get(rid),
             "updated": _utc(updated.get(record.path.name)),
             # When the catalog first listed the record; null when the history can't say.
             "added": _utc((added or {}).get(record.path.name)),
@@ -547,15 +554,15 @@ def write_api(root: Path, url: str, records: list[Record], report: Report, *, up
             "icon": icon.get(large),
             "icon_small": icon.get(small) or icon.get(large),
             # Lets a client keep its copy of the icon until the developer's image changes.
-            "icon_hash": icon_hashes.get(titleid) if icon else None,
+            "icon_hash": icon_hashes.get(rid) if icon else None,
         }
-        _write_json(root / "apps" / f"{titleid}.json", app)
+        _write_json(root / "apps" / f"{rid}.json", app)
         index.append({key: app[key] for key in (
-            "titleid", "status", "name", "kind", "category", "author", "version", "content_version", "format", "size",
+            "id", "titleid", "status", "conflicts_with", "name", "kind", "category", "author", "version", "content_version", "format", "size",
             "released", "updated", "added", "icon_small", "icon_hash")}
-            | {"sandbox": ((safety or {}).get(titleid) or {}).get("sandbox")})
+            | {"sandbox": ((safety or {}).get(rid) or {}).get("sandbox")})
         if not record.reserved:
-            versions[titleid] = {"content_version": facts.content_version, "version": d["version"]}
+            versions[rid] = {"content_version": facts.content_version, "version": d["version"]}
     _write_json(root / "index.json", {
         "schema": API_SCHEMA, "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "commit": commit, "count": len(index), "apps": index})
@@ -579,7 +586,7 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
     records = load_catalog(apps_dir, report)
     if report.failed:
         return 0
-    records.sort(key=lambda r: (r.data["name"].casefold(), r.titleid))
+    records.sort(key=lambda r: (r.data["name"].casefold(), r.id))
     base = normalize_base(base)
     site_url = site_url.rstrip("/")
     commit = source_commit()
@@ -604,21 +611,21 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
     coming_soon = assets.add("coming-soon", *reversed(process_icon(coming_soon_source)))
     originals: dict[str, bytes] = {}
     for record in records:
-        icons[record.titleid] = coming_soon if record.reserved else placeholder
+        icons[record.id] = coming_soon if record.reserved else placeholder
         if record.reserved:
-            originals[record.titleid] = coming_soon_source
+            originals[record.id] = coming_soon_source
         if not fetch_icons or record.icon_source is None:
             continue
         try:
             content, extension, original = _icon(record.icon_source, icon_cache,
                                                  lambda data=record.data: artifacts.fetch_icon(data))
-            api_icons[record.titleid] = png_icons(original)
-            icon_hashes[record.titleid] = hashlib.sha256(original).hexdigest()[:16]
+            api_icons[record.id] = png_icons(original)
+            icon_hashes[record.id] = hashlib.sha256(original).hexdigest()[:16]
         except (artifacts.DownloadError, OSError, ValueError) as error:
             report.warning(f"apps/{record.path.name}", f"icon not included, using a placeholder: {error}")
             continue
-        icons[record.titleid] = assets.add(f"icon-{record.titleid}", extension, content)
-        originals[record.titleid] = original
+        icons[record.id] = assets.add(f"icon-{record.id}", extension, content)
+        originals[record.id] = original
 
     # Each app's ambient picture and main colour, for the themes that show them. The colours
     # go into the stylesheet as one rule per app: the pages carry no inline styles.
@@ -628,15 +635,15 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
     if theme in AMBIENT_THEMES:
         plain = make_ambient(None)
         for record in records:
-            made = make_ambient(originals.get(record.titleid)) if record.titleid in originals else plain
+            made = make_ambient(originals.get(record.id)) if record.id in originals else plain
             if made is None:      # no Pillow: the theme's own picture and colour
-                ambients[record.titleid] = assets.add("ambient", "png", (theme_obj.directory / "field.png").read_bytes())
-                accents[record.titleid] = "#42358f"
+                ambients[record.id] = assets.add("ambient", "png", (theme_obj.directory / "field.png").read_bytes())
+                accents[record.id] = "#42358f"
                 continue
-            ambients[record.titleid] = assets.add(f"ambient-{record.titleid}", "png", made[0])
-            accents[record.titleid] = made[1]
+            ambients[record.id] = assets.add(f"ambient-{record.id}", "png", made[0])
+            accents[record.id] = made[1]
         style += b"\n/* Each app's main colour, from its icon. */\n" + "".join(
-            f".tone-{titleid}{{--tone:{colour}}}\n" for titleid, colour in sorted(accents.items())).encode()
+            f".tone-{rid}{{--tone:{colour}}}\n" for rid, colour in sorted(accents.items())).encode()
     css = assets.add(f"{theme}", "css", style)
     if icon_cache and icon_cache.is_dir() and fetch_icons:
         wanted = {hashlib.sha256(r.icon_source.encode()).hexdigest() + ".img"
@@ -654,16 +661,16 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
     # Release facts (size, dates), asked once: the pages show the size, the API publishes all.
     from . import facts as release_facts
     from . import notes as release_notes
-    known = {r.titleid: release_facts.cached(r, github, icon_cache) for r in records}
+    known = {r.id: release_facts.cached(r, github, icon_cache) for r in records}
     from .scan import load_approved
     approved = load_approved()
     summaries = load_scans(scans, records)
-    safety = {r.titleid: safety_facts(summaries.get(r.titleid), known[r.titleid][0].uploader, approved)
+    safety = {r.id: safety_facts(summaries.get(r.id), known[r.id][0].uploader, approved)
               for r in records if not r.reserved}
 
     def safety_section(record: Record) -> str:
         """The "Safety" part of an app's page; nothing when the release wasn't scanned."""
-        facts = safety.get(record.titleid)
+        facts = safety.get(record.id)
         if not facts:
             return ""
         sandbox = {"stays": ("good", "Stays in the sandbox", "The scan found no way for this app to reach beyond "
@@ -704,7 +711,7 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
 
     def notes_section(record: Record, release_url: str) -> str:
         """The "Release notes" part of an app's page; nothing when the release has no notes."""
-        body, cut = release_notes.as_html(known[record.titleid][0].notes)
+        body, cut = release_notes.as_html(known[record.id][0].notes)
         if not body:
             return ""
         more = "Read the full notes on GitHub" if cut else "See this release on GitHub"
@@ -714,22 +721,42 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
                 f'<a href="{e(release_url)}" rel="nofollow">{more}</a></p>')
 
     def page_url(record: Record) -> str:
-        return f"{base}app/{record.titleid}/"
+        return f"{base}app/{record.id}/"
+
+    sharing: dict[str, list[Record]] = {}
+    for record in records:
+        sharing.setdefault(record.titleid, []).append(record)
+
+    def shared_id(record: Record) -> tuple[str, str]:
+        """The chip and the note an app's page shows when another listed app has its title ID."""
+        others = [r for r in sharing[record.titleid] if r.id != record.id]
+        if not others:
+            return "", ""
+        links = ", ".join(f'<a href="{e(page_url(r))}">{e(r.data["name"])}</a>' for r in others)
+        chip = '<li class="chips__warn">The ID is not unique</li>'
+        note = (f'<p class="idnote">Another app is listed with the title ID <code>{e(record.titleid)}</code>: {links}. '
+                'A console holds one app per title ID, so installing this one replaces the other and they share '
+                'save data.</p>')
+        return chip, note
 
     def app_values(record: Record, number: int) -> dict:
         d = record.data
+        shared_chip, shared_note = shared_id(record)
         values = {k: "" if v is None else e(v) for k, v in d.items()}
         values.update(
+            shared_chip=shared_chip,
+            shared_note=shared_note,
+            id=e(record.id),
             url=e(page_url(record)),
-            icon=e(icons[record.titleid]),
+            icon=e(icons[record.id]),
             kind_label=e(KIND_LABELS[d["kind"]]),
             category_label=e(CATEGORIES[d["category"]]),
             category_rank=str(list(CATEGORIES).index(d["category"])),
             status="soon" if record.reserved else "available",
             format="",
-            ambient=e(ambients.get(record.titleid, "")),
-            accent=e(accents.get(record.titleid, "")),
-            size_label=e(size_label(known[record.titleid][0].size)),
+            ambient=e(ambients.get(record.id, "")),
+            accent=e(accents.get(record.id, "")),
+            size_label=e(size_label(known[record.id][0].size)),
         )
         if not record.reserved:
             fmt = artifact_format(record)
@@ -742,7 +769,7 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
                 release_url=e(f"{d['source_repo']}/releases/tag/{d['artifact_url'].split('/releases/download/')[1].split('/')[0]}"),
                 tag=e(record.tag),
                 # Finds the app's discussion by its title ID; the page's script swaps in the exact address.
-                comments_search=e(f"{REPO_URL}/discussions?discussions_q={record.titleid}"),
+                comments_search=e(f"{REPO_URL}/discussions?discussions_q={record.id}"),
                 safety=safety_section(record),
                 notes=notes_section(
                     record, f"{d['source_repo']}/releases/tag/{d['artifact_url'].split('/releases/download/')[1].split('/')[0]}"),
@@ -757,24 +784,24 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
         )
         return values
 
-    numbered = {r.titleid: app_values(r, i) for i, r in enumerate(sorted(records, key=lambda r: r.titleid), 1)}
+    numbered = {r.id: app_values(r, i) for i, r in enumerate(sorted(records, key=lambda r: r.id), 1)}
 
     def items(template: str, selection: list[Record]) -> str:
         """Render records with the data attributes the filter and sort script reads."""
         rendered = []
         for record in selection:
-            values = dict(numbered[record.titleid])
+            values = dict(numbered[record.id])
             values["grid_attrs"] = (
                 f' data-app data-app-kind="{values["kind"]}" data-status="{values["status"]}"'
                 f' data-format="{values["format"]}"'
                 f' data-category="{values["category"]}" data-category-rank="{values["category_rank"]}"'
-                f' data-name="{e(record.data["name"].casefold())}" data-titleid="{values["titleid"]}"'
+                f' data-name="{e(record.data["name"].casefold())}" data-titleid="{values["titleid"]}" data-id="{values["id"]}"'
                 f' data-author="{e(record.data["author"].casefold())}"'
                 f' data-updated="{values["updated_iso"]}" data-search-text="{values["search_text"]}"'
                 # When the catalog listed it, and when the release it lists was published: Discover
                 # tells new apps from updated ones with them, not with the record's last change.
                 f' data-added="{e(_utc(added.get(record.path.name)) or "")}"'
-                f' data-released="{e(known[record.titleid][0].released or "")}"'
+                f' data-released="{e(known[record.id][0].released or "")}"'
             )
             name = template.replace(".html", "-soon.html") if record.reserved else template
             rendered.append(theme_obj.render(name, values))
@@ -830,14 +857,14 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
 
     # App pages.
     for record in records:
-        values = dict(shared, **numbered[record.titleid])
+        values = dict(shared, **numbered[record.id])
         if not record.reserved:
             values["steps"] = _install_steps(record)
-        write_page(root / "app" / record.titleid / "index.html",
+        write_page(root / "app" / record.id / "index.html",
                    title=f"{record.data['name']} — PS5 Homebrew Store", description=record.data["description"],
                    canonical=site_url + page_url(record),
                    body=theme_obj.render("app-soon.html" if record.reserved else "app.html", values),
-                   og_image=site_url + icons[record.titleid], page_class="page-app")
+                   og_image=site_url + icons[record.id], page_class="page-app")
 
     # TV mode: a 10-foot interface for the PS5 browser, drawn by tv.js from data embedded in the page.
     tv_template = theme_obj.template("tv.html")
@@ -847,14 +874,14 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
         for record in records:
             d = record.data
             item = {
-                "titleid": d["titleid"], "name": d["name"], "kind": d["kind"], "kind_label": KIND_LABELS[d["kind"]],
+                "id": record.id, "titleid": d["titleid"], "name": d["name"], "kind": d["kind"], "kind_label": KIND_LABELS[d["kind"]],
                 "category": d["category"], "category_label": CATEGORIES[d["category"]],
                 "description": d["description"], "author": d["author"], "version": d["version"] or "",
                 "version_label": version_label(d["version"]) if d["version"] else "",
-                "license": d["license"] or ("" if record.reserved else UNLICENSED), "soon": record.reserved, "icon": icons[record.titleid],
+                "license": d["license"] or ("" if record.reserved else UNLICENSED), "soon": record.reserved, "icon": icons[record.id],
                 "updated": display_date(updated[record.path.name]) if record.path.name in updated else "",
                 "updated_iso": updated.get(record.path.name, ""), "short_url": host + page_url(record),
-                "released_iso": known[record.titleid][0].released or "",
+                "released_iso": known[record.id][0].released or "",
             }
             if not record.reserved:
                 item.update(format_label=FORMAT_LABELS[artifact_format(record)], sha256=d["sha256"],
@@ -899,13 +926,13 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
         "source": {"repository": REPO_URL, "commit": commit},
         "apps": [
             {**r.data, "format": artifact_format(r), "updated": updated.get(r.path.name),
-             "page": site_url + page_url(r), "icon": site_url + icons[r.titleid]}
-            for r in sorted(releases, key=lambda r: r.titleid)
+             "page": site_url + page_url(r), "icon": site_url + icons[r.id]}
+            for r in sorted(releases, key=lambda r: r.id)
         ],
         "coming_soon": [
             {**r.data, "updated": updated.get(r.path.name),
-             "page": site_url + page_url(r), "icon": site_url + icons[r.titleid]}
-            for r in sorted((r for r in records if r.reserved), key=lambda r: r.titleid)
+             "page": site_url + page_url(r), "icon": site_url + icons[r.id]}
+            for r in sorted((r for r in records if r.reserved), key=lambda r: r.id)
         ],
     }
     (root / "catalog").mkdir()
@@ -915,7 +942,7 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
     write_api(root / "api" / API_VERSION, f"{site_url}{base}api/{API_VERSION}/", records, report,
               updated=updated, icons=api_icons, icon_hashes=icon_hashes,
               # A mirror of the API has no pages of its own: its `page` links go to the website.
-              page=lambda r: (pages_url.rstrip("/") + f"/app/{r.titleid}/") if pages_url else site_url + page_url(r),
+              page=lambda r: (pages_url.rstrip("/") + f"/app/{r.id}/") if pages_url else site_url + page_url(r),
               commit=commit,
               github=github, cache=icon_cache, known=known, safety=safety,
               added=added, news=news_items)
@@ -956,12 +983,12 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
         if old != base:
             redirects += [f"{old}list {base}?view=list 301", f"{old}list/ {base}?view=list 301",
                           f"{old.rstrip('/')} {base} 301", f"{old}* {base}:splat 301"]
-    for titleid in withdrawn_titleids(apps_dir, {r.titleid for r in records}):
-        redirects += [f"{base}app/{titleid}/ {base} 302", f"{base}app/{titleid} {base} 302"]
+    for gone in withdrawn_ids(apps_dir, {r.id for r in records}):
+        redirects += [f"{base}app/{gone}/ {base} 302", f"{base}app/{gone} {base} 302"]
         # Its API file is replaced as well. Written after the manifest and so not named in it:
         # an app that is absent from the manifest is not in the catalog.
-        _write_json(root / "api" / API_VERSION / "apps" / f"{titleid}.json",
-                    {"schema": API_SCHEMA, "titleid": titleid, "status": "withdrawn"})
+        _write_json(root / "api" / API_VERSION / "apps" / f"{gone}.json",
+                    {"schema": API_SCHEMA, "id": gone, "titleid": gone[:9], "status": "withdrawn"})
     (out / "_redirects").write_text("\n".join(redirects) + "\n", encoding="utf-8")
     (out / "robots.txt").write_text("User-agent: *\nAllow: /\n", encoding="utf-8")
     return total

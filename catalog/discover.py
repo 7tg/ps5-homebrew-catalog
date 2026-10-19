@@ -216,7 +216,7 @@ def assess(candidate: Candidate, github: GitHub, apps_dir: Path) -> None:
         if problem:
             candidate.draft.blockers.append(problem)
     elif any("already listed" in b for b in blockers):
-        candidate.status = "title ID already listed"
+        candidate.status = "repository already listed"
         candidate.note = blockers[0]
     elif candidate.strong or evidence:
         candidate.status = "review"

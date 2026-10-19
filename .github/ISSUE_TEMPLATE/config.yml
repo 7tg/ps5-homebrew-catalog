@@ -5,4 +5,4 @@ contact_links:
     about: Don't file security reports publicly.
   - name: List or update your app
     url: https://github.com/darkxex/ps5-homebrew-catalog/blob/main/docs/submitting.md
-    about: Open a pull request that adds or edits apps/<TITLEID>.json.
+    about: Open a pull request that adds or edits apps/<TITLEID>.json (or apps/<TITLEID>-<owner>.json).

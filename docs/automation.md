@@ -20,7 +20,7 @@ Results appear as annotations and in each run's job summary.
 For a pull request the checker:
 
 1. **Classifies the changed files.** Community pull requests may only add or
-   modify exactly one `apps/<TITLEID>.json`, as a regular, non-executable file.
+   modify exactly one `apps/<TITLEID>.json` or `apps/<TITLEID>-<owner>.json`, as a regular, non-executable file.
    Deletions and changes to any other file are reserved for maintainers
    (`OWNER`, `MEMBER` or `COLLABORATOR` of this repository). A pull request
    from a branch of this repository itself, rather than a fork, also counts as
@@ -80,7 +80,7 @@ in the catalog and adds another of their own, is not kept waiting for a maintain
 the same workflow run `python3 -m catalog automerge`, and the pull request is approved and
 squash-merged by the catalog's GitHub App when **all** of this holds:
 
-- it changes exactly one file, an `apps/<TITLEID>.json`: a removal or any other file always
+- it changes exactly one file, an `apps/<TITLEID>.json` (or `<TITLEID>-<owner>.json`): a removal or any other file always
   waits for a maintainer;
 - **a release bump** (the file exists): only `version`, `artifact_url`, `sha256` and `icon_url`
   differ from the listed record, the file is a new one, it is a release file of the same
@@ -356,7 +356,7 @@ If the `main` ruleset restricts who may create branches, allow the app to push
 GitHub holds the comments and likes; the catalog has no database. Every listed
 app has one Discussion in this repository, in the category **App comments**. Its
 replies are the app's comments, and its upvotes (the arrow beside the title)
-are the app's likes. A hidden marker in the post (`<!-- titleid: PPSA01234 -->`) ties it
+are the app's likes. A hidden marker in the post (`<!-- titleid: PPSA01234 -->`, holding the record's [id](metadata.md#shared-title-ids)) ties it
 to its record, so an app can change its name.
 
 The [Comments](../.github/workflows/comments.yml) workflow runs every hour
@@ -379,7 +379,7 @@ fresh as the timer). Each run:
 | File | Content |
 | --- | --- |
 | `v1/index.json` | `schema` (1) and `apps`: per title ID the `discussion` number, its `url`, `likes` and `comments` |
-| `v1/apps/<TITLEID>.json` | the same four values for one app, and `latest`: up to 10 comments, newest first, each with `author`, `date` and `text` |
+| `v1/apps/<ID>.json` | the same four values for one app, and `latest`: up to 10 comments, newest first, each with `author`, `date` and `text` |
 
 They are read from
 `https://raw.githubusercontent.com/<owner>/ps5-homebrew-catalog/comments-data/`.
@@ -407,15 +407,14 @@ other repositories: nothing is downloaded and developers aren't contacted.
    (`ps5 homebrew`, the `ps5` and `ps5-homebrew` topics, `prospero` in the
    name); and the other repositories of developers who are listed or have a
    strong signal.
-2. **Skip.** Repositories already listed, title IDs already in the catalog,
-   repositories in [`discovery/ignore.txt`](../discovery/ignore.txt), and apps
+2. **Skip.** Repositories already listed, repositories in [`discovery/ignore.txt`](../discovery/ignore.txt), and apps
    whose listing pull request is open or was closed without merging.
 3. **Check,** strongest candidates first (600 per run): a published release
    with a `.zip`, `.ffpkg` or `.ffpfsc` file, then everything
    `catalog draft` checks. Only a `.zip` is accepted at the moment, so a
    proposal whose file is an image is closed in review.
 4. **Propose.** An app with no blockers, an icon
-   next to its `param.json` gets a listing pull request on `listing/<TITLEID>`
+   next to its `param.json` gets a listing pull request on `listing/<TITLEID>` (`listing/<TITLEID>-<owner>` when the title ID is shared)
    from the catalog's GitHub App (at most 10 new ones a run). The job guesses
    `kind` from keywords and `description` from the repository's About text or
    README, and says so in the pull request.

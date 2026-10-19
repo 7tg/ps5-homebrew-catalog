@@ -123,8 +123,17 @@ class DraftTests(unittest.TestCase):
         self.assertNotIn("icon_member", result.record)
         self.assertTrue(any("no usable icon at Example/sce_sys/icon0.png" in item for item in result.todo))
 
-    def test_already_listed_title_id_blocks(self):
+    def test_title_id_of_another_app_is_saved_under_the_owner_suffix(self):
         github = FakeGitHub(param=dict(PARAM, titleId="PPSA01234"))
+        result = draft_record("Dev/Example", github, self.apps)
+        self.assertEqual(result.blockers, [])
+        self.assertTrue(any("apps/PPSA01234-dev.json" in item for item in result.todo))
+
+    def test_already_listed_repository_blocks(self):
+        write_record(self.apps, record(titleid="PPSA04321", name="Other", sha256="b" * 64,
+                                       source_repo="https://github.com/Dev/Example",
+                                       artifact_url="https://github.com/Dev/Example/releases/download/01.000.000/x.zip"))
+        github = FakeGitHub(param=dict(PARAM, titleId="PPSA09999"))
         self.assertTrue(any("already listed" in b for b in draft_record("Dev/Example", github, self.apps).blockers))
 
     def test_license_section(self):
