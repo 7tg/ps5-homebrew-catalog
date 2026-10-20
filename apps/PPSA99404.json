@@ -6,9 +6,9 @@
   "description": "Your own PC copy of Blur as a homebrew app on a jailbroken PS5, through prospero-win, with split screen and Amax online play (bring your own copy).",
   "license": "GPL-3.0",
   "author": "7tg",
-  "version": "01.000.000",
+  "version": "01.001.000",
   "source_repo": "https://github.com/7tg/sahin",
-  "artifact_url": "https://github.com/7tg/sahin/releases/download/01.000.000/PPSA99404.zip",
-  "sha256": "9a4f7169232866880ef59f885b21cfd59eaf674e98b1d0fc614adf18651334d2",
-  "icon_url": "https://raw.githubusercontent.com/7tg/sahin/01.000.000/art/sahin.png"
+  "artifact_url": "https://github.com/7tg/sahin/releases/download/01.001.000/PPSA99404.zip",
+  "sha256": "36f60a6829c203734500e6aaef490aa310b4c87c7a38eb0c79062500eda59114",
+  "icon_url": "https://raw.githubusercontent.com/7tg/sahin/01.001.000/art/sahin.png"
 }
