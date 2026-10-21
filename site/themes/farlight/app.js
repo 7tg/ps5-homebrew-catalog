@@ -453,6 +453,15 @@
       if (featuredNow) return I18N.t(banner === 0 ? "stage.new" : "stage.featured");
       return app.categoryLabel || app.kindLabel;
     }
+    var stageToggle = $("[data-stage-toggle]", stage);
+    var translated = null;
+    var showingTranslation = true;
+    stageToggle.addEventListener("click", function () {
+      if (!translated) return;
+      showingTranslation = !showingTranslation;
+      $("[data-stage-text]", stage).textContent = showingTranslation ? translated.text : translated.original;
+      stageToggle.textContent = I18N.t(showingTranslation ? "translate.original" : "translate.translated");
+    });
     function fillWords(app, kicker) {
       $("[data-stage-kicker]", stage).textContent = kicker;
       $("[data-stage-title]", stage).textContent = app.name;
@@ -462,7 +471,17 @@
       $("[data-stage-meta]", stage).textContent = meta.join("  ·  ");
       var stageText = $("[data-stage-text]", stage);
       stageText.textContent = app.description;
-      I18N.translate(app.description, function (text) { if (stageText.textContent === app.description) stageText.textContent = text; });
+      /* Machine-translated: "Show original" appears once the translation is in and switches back and forth. */
+      translated = null;
+      showingTranslation = true;
+      stageToggle.classList.add("stage__toggle--off");
+      I18N.translate(app.description, function (text) {
+        if (stageText.textContent !== app.description) return;
+        translated = { original: app.description, text: text };
+        stageText.textContent = text;
+        stageToggle.textContent = I18N.t("translate.original");
+        stageToggle.classList.remove("stage__toggle--off");
+      });
       $("[data-stage-link]", stage).setAttribute("href", app.url);
       $("[data-stage-mark]", stage).hidden = !app.soon;
     }
