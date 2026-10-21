@@ -397,7 +397,7 @@ html:not(.js) .sort { display: none; }
 /* Comments: what people wrote in the app's GitHub discussion, as plain text. */
 .comments__none, .comments__more { margin: 0; }
 .comments__none[hidden], .comments__more[hidden] { display: none; }
-.comments__list { margin: calc(8 * var(--u)) 0 0; padding: 0; list-style: none; }
+.comments__list { margin: calc(8 * var(--u)) 0 0; padding: 0 calc(6 * var(--u)) 0 0; list-style: none; max-height: calc(560 * var(--u)); overflow-y: auto; overscroll-behavior: contain; }
 .comments__list li { margin: 0 0 calc(12 * var(--u)); padding: calc(18 * var(--u)) calc(22 * var(--u)); border-radius: calc(16 * var(--u)); background: rgba(244, 239, 230, 0.06); }
 .comments__by { display: block; margin: 0 0 calc(6 * var(--u)); font-size: 0.86em; color: rgba(244, 239, 230, 0.62); }
 .comments__by b { font-weight: 600; color: var(--ink); }

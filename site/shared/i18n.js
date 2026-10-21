@@ -927,7 +927,53 @@
     bar.appendChild(box); // after "Submit app"
   }
 
-  window.I18N = { lang: lang, langs: LANGS, t: t, html: html, text: text, category: category, kind: kind, date: date, apply: apply, next: next, choose: choose };
+  /* ---- Developers' words ----
+     Descriptions and release notes are written by the developers, in English. For a reader in another
+     language they are machine-translated by Google Translate in the reader's browser, and kept in this
+     browser (a changed text is simply translated again). If it fails, the English stays. */
+  var TRANSLATE = "https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=auto&tl=";
+  function remembered(key, value) {
+    try {
+      if (value === undefined) return window.localStorage.getItem(key);
+      window.localStorage.setItem(key, value);
+    } catch (error) { /* no storage: translated again next time */ }
+    return null;
+  }
+  function translate(source, done) {
+    var original = String(source || "").trim();
+    if (lang === "en" || !original || original.length > 1500 || !window.fetch) return;
+    var key = "catalog-tr:" + lang + ":" + original;
+    var known = remembered(key);
+    if (known) { done(known); return; }
+    window.fetch(TRANSLATE + lang + "&q=" + encodeURIComponent(original), { credentials: "omit", referrerPolicy: "no-referrer" })
+      .then(function (answer) { return answer.json(); })
+      .then(function (data) {
+        var out = (data[0] || []).map(function (part) { return part[0] || ""; }).join("").trim();
+        if (!out) return;
+        remembered(key, out);
+        done(out);
+      })
+      .catch(function () { /* the English stays */ });
+  }
+  /* Every text of the markup under `root` (code and preformatted text stay as written). */
+  function translateWithin(root) {
+    if (lang === "en" || !root) return;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var nodes = [], node;
+    while ((node = walker.nextNode())) {
+      if (node.nodeValue.trim().length > 1 && !(node.parentNode.closest && node.parentNode.closest("code, pre"))) nodes.push(node);
+    }
+    nodes.slice(0, 80).forEach(function (one) {
+      var lead = one.nodeValue.match(/^\s*/)[0], tail = one.nodeValue.match(/\s*$/)[0];
+      translate(one.nodeValue, function (text) { if (one.parentNode) one.nodeValue = lead + text + tail; });
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    var marked = document.querySelectorAll("[data-translate]");
+    for (var i = 0; i < marked.length; i++) translateWithin(marked[i]);
+  });
+
+  window.I18N = { translate: translate, lang: lang, langs: LANGS, t: t, html: html, text: text, category: category, kind: kind, date: date, apply: apply, next: next, choose: choose };
 
   document.addEventListener("DOMContentLoaded", function () {
     apply();

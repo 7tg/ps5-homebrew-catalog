@@ -460,7 +460,9 @@
       if (app.version) meta.push(app.version.replace(/^v(?=\d)/, ""));
       if (app.size) meta.push(app.size);
       $("[data-stage-meta]", stage).textContent = meta.join("  ·  ");
-      $("[data-stage-text]", stage).textContent = app.description;
+      var stageText = $("[data-stage-text]", stage);
+      stageText.textContent = app.description;
+      I18N.translate(app.description, function (text) { if (stageText.textContent === app.description) stageText.textContent = text; });
       $("[data-stage-link]", stage).setAttribute("href", app.url);
       $("[data-stage-mark]", stage).hidden = !app.soon;
     }
@@ -640,7 +642,7 @@
   /* Everything in the file is other people's text: it goes in as text, never as markup. */
   function showComments(box, data) {
     var list = $("[data-comments-list]", box);
-    var latest = Array.isArray(data.latest) ? data.latest.slice(0, 10) : [];
+    var latest = Array.isArray(data.latest) ? data.latest.slice(0, 50) : [];
     if (!list || !latest.length) return;
     latest.forEach(function (comment) {
       if (!comment || typeof comment.text !== "string" || !comment.text) return;
