@@ -410,6 +410,9 @@ html:not(.js) .sort { display: none; }
 .notes ul { margin: 0 0 calc(14 * var(--u)); padding-left: 1.2em; }
 .notes li { margin: 0 0 calc(6 * var(--u)); }
 .notes code { font-size: 0.92em; }
+.translated__toggle { display: block; margin: calc(8 * var(--u)) 0 0; padding: 0; border: 0; background: none; font: inherit; font-size: calc(16 * var(--u)); color: rgba(244, 239, 230, 0.62); text-decoration: underline; cursor: pointer; }
+h2 .translated__toggle, .article__lead .translated__toggle { display: inline; margin: 0 0 0 calc(14 * var(--u)); font-weight: 400; vertical-align: middle; }
+.translated__toggle:hover, .translated__toggle:focus-visible { color: rgba(244, 239, 230, 0.9); }
 .notes__source { margin-top: calc(12 * var(--u)); font-size: 0.9em; color: rgba(244, 239, 230, 0.62); }
 /* Safety: what the release scan found, as labels with a sentence each. */
 .safety { display: flex; flex-wrap: wrap; gap: calc(12 * var(--u)); margin: 0 0 calc(16 * var(--u)); padding: 0; list-style: none; }

@@ -734,7 +734,7 @@ def build_site(out: Path, apps_dir: Path, report: Report, base: str = DEFAULT_BA
         author, version = e(record.data["author"]), e(version_label(record.data["version"]))
         # The release notes themselves are the developer's words and stay as written.
         return ('<h2 id="notes-title" data-i18n="notes.title">Release notes</h2>\n'
-                f'<div class="notes" data-translate>\n{body}\n</div>\n'
+                f'<div class="notes" data-translate data-translate-by="notes-title">\n{body}\n</div>\n'
                 f'<p class="notes__source"><span data-i18n="notes.source" data-v-author="{author}" data-v-version="{version}">'
                 f'Written by {author} for {version}. </span>'
                 f'<a href="{e(release_url)}" rel="nofollow" data-i18n="{more_key}">{more}</a></p>')
