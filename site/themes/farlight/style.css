@@ -251,6 +251,7 @@ code { font: 0.9em var(--mono); }
 @keyframes breathe { from { transform: scale(1.12) translate3d(-1%, -0.6%, 0); } to { transform: scale(1.19) translate3d(1.2%, 0.8%, 0); } }
 .stage__shade { position: absolute; left: 0; right: 0; top: calc(-260 * var(--u)); bottom: calc(-330 * var(--u)); z-index: -1; -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent); mask-image: linear-gradient(180deg, #000 70%, transparent); background: linear-gradient(90deg, rgba(14, 15, 36, 0.93), rgba(14, 15, 36, 0) 77%), linear-gradient(180deg, rgba(14, 15, 36, 0) 42%, rgba(14, 15, 36, 0.95) 78%); }
 .stage__inner { position: relative; max-width: 1920px; min-height: calc(500 * var(--u)); margin: 0 auto; padding: calc(78 * var(--u)) var(--margin) calc(22 * var(--u)); }
+.stage { touch-action: pan-y; }
 .stage__words { max-width: min(calc(1180 * var(--u)), calc(100% + var(--margin) - 700 * var(--u))); transition: opacity 0.22s ease, transform 0.3s var(--ease); }
 .stage__words.is-leaving { opacity: 0; transform: translateX(calc(-26 * var(--u))); transition-duration: 0.14s; }
 .stage__words.is-arriving { opacity: 0; transform: translateX(calc(24 * var(--u))); transition: none; }
