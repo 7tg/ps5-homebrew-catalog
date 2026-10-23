@@ -38,8 +38,8 @@ then reviews and merges it.
   cropped to a square on the website.
 - The pull request should come from the **account that owns the repository**. To
   list an app from someone else's repository, open it from your own account: the check passes
-  with a warning and the `third-party` label, and a maintainer approves it by hand (it is never merged automatically,
-  and may be declined without the developer's consent). An app that is already listed can be
+  with a warning and the `third-party` label, and a maintainer approves it by hand (it is never merged automatically;
+  the developer's permission is not needed, but the license must allow redistribution). An app that is already listed can be
   changed only by its owner, or by the account that listed it (again with manual approval). For an organization's repository, your membership of that organization must be
   [public](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-your-membership-in-organizations/publicizing-or-hiding-organization-membership).
 
