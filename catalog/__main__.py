@@ -16,7 +16,7 @@ from pathlib import Path
 from .automerge import UPDATE_BRANCH
 from .github import GitHub, GitHubError
 from .policy import (THIRD_PARTY_WARNING, Change, check_changes, check_publisher, derivative_notes,
-                     is_curator, is_maintainer)
+                     is_maintainer)
 from .records import (MAX_FILE_BYTES, RECORD_PATH, Record, icon_source, load_catalog, load_record, record_id,
                       repo_parts)
 from .report import Report
@@ -336,6 +336,40 @@ def reservation_holder(record_path: str, github: GitHub) -> str | None:
         return None
 
 
+def is_curator(author: str, github: GitHub) -> bool:
+    """True when a commit of the author added an app whose repository belongs to someone else.
+
+    Only a maintainer merges such a pull request, so listing another developer's app is how an
+    account earns the role. The commits are narrowed locally (the login in the commit's author
+    name or e-mail, which covers GitHub's no-reply addresses) and only those are confirmed through
+    the API, so an account whose commits don't show its login simply isn't a curator.
+    """
+    repository = os.environ.get("GITHUB_REPOSITORY")
+    if not repository:
+        return False
+    login = author.casefold()
+    log = git("log", "--diff-filter=A", "--format=\x1e%H\x1f%ae\x1f%an", "--name-only", "--", "apps")
+    for chunk in log.split("\x1e")[1:]:
+        header, _, files = chunk.partition("\n")
+        sha, email, name = header.split("\x1f")
+        if login not in f"{email} {name}".casefold():
+            continue
+        for filename in files.split():
+            path = ROOT / filename
+            if not path.is_file():
+                continue
+            listed = load_record(path, Report())
+            if listed is None or listed.reserved or listed.owner.casefold() == login:
+                continue
+            try:
+                if (github.commit_author(repository, sha) or "").casefold() == login:
+                    return True
+            except GitHubError:
+                pass
+            break
+    return False
+
+
 def cmd_pr(args) -> int:
     """Validate a pull request using this (base-branch) code; PR files are read only as data."""
     event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
@@ -346,7 +380,8 @@ def cmd_pr(args) -> int:
     head_repo = ((pull.get("head") or {}).get("repo") or {}).get("full_name")
     same_repository = bool(head_repo) and head_repo == ((pull.get("base") or {}).get("repo") or {}).get("full_name")
     maintainer = is_maintainer(pull["author_association"]) or same_repository
-    curator = not maintainer and is_curator(author)
+    github = GitHub()
+    curator = not maintainer and is_curator(author, github)
     report = Report()
     if maintainer:
         report.notice("pull request", f"@{author} is a maintainer; community-only rules are relaxed")
@@ -358,7 +393,6 @@ def cmd_pr(args) -> int:
     base = git("merge-base", "HEAD", head).strip()
     record_changes = check_changes(diff_changes(base, head), maintainer, report)
 
-    github = GitHub()
     with tempfile.TemporaryDirectory(prefix="catalog-pr-") as tmp:
         candidate = Path(tmp) / "apps"
         shutil.copytree(APPS, candidate)

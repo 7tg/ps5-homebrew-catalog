@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from pathlib import Path
 
 from .github import GitHub, GitHubError
 from .records import MAX_RESERVATIONS_PER_ACCOUNT, RECORD_PATH, Record
@@ -12,7 +11,6 @@ from .report import Report
 from .updates import is_release_bump
 
 MAINTAINER_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
-CURATORS_FILE = Path(__file__).resolve().parent.parent / ".github" / "CURATORS"
 REGULAR_FILE_MODE = "100644"
 
 
@@ -25,16 +23,6 @@ class Change:
 
 def is_maintainer(author_association: str) -> bool:
     return author_association in MAINTAINER_ASSOCIATIONS
-
-
-def is_curator(author: str, path: Path = CURATORS_FILE) -> bool:
-    """True when the account is listed in .github/CURATORS (one login per line, # starts a comment)."""
-    try:
-        lines = path.read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return False
-    logins = {line.split("#", 1)[0].strip().casefold() for line in lines}
-    return author.casefold() in logins - {""}
 
 
 def check_changes(changes: list[Change], maintainer: bool, report: Report) -> list[Change]:
@@ -128,8 +116,9 @@ def check_publisher(author: str, maintainer: bool, old: Record | None, new: Reco
     organization). Reservations have no source_repo; they belong to the account
     that added them (holder, from the file's git history), and so does a listing
     of someone else's repository. held is how many other reservations the author
-    already holds. A curator (listed in .github/CURATORS) may also propose changes
-    to a listed app that someone else listed; a maintainer still approves every one.
+    already holds. A curator (an account that has listed an app from a repository it
+    does not own) may also propose changes to a listed app that someone else listed;
+    a maintainer still approves every one.
     """
     name = f"apps/{new.path.name}"
     if old and old.reserved:

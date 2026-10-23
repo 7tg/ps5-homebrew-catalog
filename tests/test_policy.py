@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from catalog.policy import Change, check_changes, check_publisher, is_curator, is_maintainer
+from catalog.policy import Change, check_changes, check_publisher, is_maintainer
 from catalog.records import Record
 from catalog.report import Report
 
@@ -134,17 +134,6 @@ class PublisherTests(unittest.TestCase):
         changed = Record(old.path, dict(old.data, description="Another sentence about the app."))
         self.assertEqual(self.check("carla", old, changed, holder="someone", curator=True), [])
         self.assertTrue(any("a maintainer must approve" in w and "is a curator" in w for w in self.warned))
-
-    def test_curators_file_lists_logins_and_ignores_comments(self):
-        import tempfile
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "CURATORS"
-            path.write_text("# curators\nCarla  # lists apps\n\nBeto\n", encoding="utf-8")
-            self.assertTrue(is_curator("carla", path))
-            self.assertTrue(is_curator("BETO", path))
-            self.assertFalse(is_curator("mallory", path))
-            self.assertFalse(is_curator("", path))
-            self.assertFalse(is_curator("carla", Path(tmp) / "missing"))
 
     def test_the_account_that_listed_someone_elses_app_may_update_it_with_a_warning(self):
         old = make_record("example")
