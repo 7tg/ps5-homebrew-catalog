@@ -1,0 +1,3 @@
+# Curators: accounts that list and update other developers' apps. One GitHub login per line.
+# A curator may propose any change to a listed app, but a maintainer approves every one by hand
+# and the bot never merges it. Only maintainers can edit this file (CODEOWNERS).

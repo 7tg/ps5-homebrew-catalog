@@ -40,6 +40,10 @@ For a pull request the checker:
    [automatic merge](#automatic-merge-of-a-developers-pull-request) never takes it. This is
    only for listing an app: an app that is already listed can be changed only by its
    owner or by the account whose commit listed it (still by hand, never automatically), and its title ID can't be moved to a different repository owner by a community PR.
+   A **curator** (an account listed in [`.github/CURATORS`](../.github/CURATORS), which only
+   maintainers can edit) may also propose any change to a listed app that someone else listed:
+   the check passes with the same warning instead of that error. A curator's pull request is
+   never merged by the bot; a maintainer approves it by hand.
    One exception: a
    change that only moves a listed app to its repository's **newest release**
    (`version`, `artifact_url`, `sha256` and `icon_url`, same `source_repo`) is

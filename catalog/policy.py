@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
 from .github import GitHub, GitHubError
 from .records import MAX_RESERVATIONS_PER_ACCOUNT, RECORD_PATH, Record
@@ -11,6 +12,7 @@ from .report import Report
 from .updates import is_release_bump
 
 MAINTAINER_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
+CURATORS_FILE = Path(__file__).resolve().parent.parent / ".github" / "CURATORS"
 REGULAR_FILE_MODE = "100644"
 
 
@@ -23,6 +25,16 @@ class Change:
 
 def is_maintainer(author_association: str) -> bool:
     return author_association in MAINTAINER_ASSOCIATIONS
+
+
+def is_curator(author: str, path: Path = CURATORS_FILE) -> bool:
+    """True when the account is listed in .github/CURATORS (one login per line, # starts a comment)."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return False
+    logins = {line.split("#", 1)[0].strip().casefold() for line in lines}
+    return author.casefold() in logins - {""}
 
 
 def check_changes(changes: list[Change], maintainer: bool, report: Report) -> list[Change]:
@@ -104,17 +116,20 @@ def derivative_notes(new: Record, listed: list[Record], github: GitHub) -> list[
 # turns it into the "third-party" label (see THIRD_PARTY_LABEL).
 THIRD_PARTY_WARNING = "a maintainer must approve"
 THIRD_PARTY_LABEL = "third-party"
+CURATOR_NOTICE = "is a curator"
 
 
 def check_publisher(author: str, maintainer: bool, old: Record | None, new: Record,
-                    github: GitHub, report: Report, holder: str | None = None, held: int = 0) -> None:
+                    github: GitHub, report: Report, holder: str | None = None, held: int = 0,
+                    curator: bool = False) -> None:
     """Decide whether the PR author may create or change this record.
 
     Releases belong to the owner of source_repo (or public members of that
     organization). Reservations have no source_repo; they belong to the account
     that added them (holder, from the file's git history), and so does a listing
     of someone else's repository. held is how many other reservations the author
-    already holds.
+    already holds. A curator (listed in .github/CURATORS) may also propose changes
+    to a listed app that someone else listed; a maintainer still approves every one.
     """
     name = f"apps/{new.path.name}"
     if old and old.reserved:
@@ -157,7 +172,7 @@ def check_publisher(author: str, maintainer: bool, old: Record | None, new: Reco
     except GitHubError as error:
         report.error(name, f"could not confirm the publisher: {error}")
         return
-    if old and not old.reserved and (holder is None or holder.casefold() != author.casefold()):
+    if old and not old.reserved and not curator and (holder is None or holder.casefold() != author.casefold()):
         # A listed app is changed by its owner, or by the account that listed it (holder, from the file's
         # git history); anyone else may only move it to its newest release (above).
         report.error(name, f"{new.titleid} is listed under {old.owner}; only its owner or the account "
@@ -165,5 +180,6 @@ def check_publisher(author: str, maintainer: bool, old: Record | None, new: Reco
         return
     # Someone else's repository may be listed, but only a maintainer can approve it: the check
     # passes with this warning and the auto-merge never takes such a pull request.
-    report.warning(name, f"@{author} does not own {new.owner}/{new.repo}; {THIRD_PARTY_WARNING} "
+    who = f"@{author} {CURATOR_NOTICE} and does not own" if curator else f"@{author} does not own"
+    report.warning(name, f"{who} {new.owner}/{new.repo}; {THIRD_PARTY_WARNING} "
                          "listing another developer's app by hand")

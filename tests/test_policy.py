@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from catalog.policy import Change, check_changes, check_publisher, is_maintainer
+from catalog.policy import Change, check_changes, check_publisher, is_curator, is_maintainer
 from catalog.records import Record
 from catalog.report import Report
 
@@ -83,10 +83,11 @@ RESERVED = Record(Path("PPSA01234.json"), reservation(titleid="PPSA01234"))
 
 
 class PublisherTests(unittest.TestCase):
-    def check(self, author, old=None, new=None, maintainer=False, github=None, holder=None, held=0):
+    def check(self, author, old=None, new=None, maintainer=False, github=None, holder=None, held=0,
+              curator=False):
         report = Report()
         check_publisher(author, maintainer, old, new or make_record(), github or FakeGitHub(), report,
-                        holder=holder, held=held)
+                        holder=holder, held=held, curator=curator)
         self.warned = warnings(report)
         return errors(report)
 
@@ -127,6 +128,23 @@ class PublisherTests(unittest.TestCase):
         self.assertTrue(any("only its owner or the account" in e
                             for e in self.check("mallory", old, changed, holder="someone")))
         self.assertEqual(self.check("example", old, changed), [])
+
+    def test_a_curator_may_change_an_app_someone_else_listed_with_a_warning(self):
+        old = make_record("example")
+        changed = Record(old.path, dict(old.data, description="Another sentence about the app."))
+        self.assertEqual(self.check("carla", old, changed, holder="someone", curator=True), [])
+        self.assertTrue(any("a maintainer must approve" in w and "is a curator" in w for w in self.warned))
+
+    def test_curators_file_lists_logins_and_ignores_comments(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "CURATORS"
+            path.write_text("# curators\nCarla  # lists apps\n\nBeto\n", encoding="utf-8")
+            self.assertTrue(is_curator("carla", path))
+            self.assertTrue(is_curator("BETO", path))
+            self.assertFalse(is_curator("mallory", path))
+            self.assertFalse(is_curator("", path))
+            self.assertFalse(is_curator("carla", Path(tmp) / "missing"))
 
     def test_the_account_that_listed_someone_elses_app_may_update_it_with_a_warning(self):
         old = make_record("example")

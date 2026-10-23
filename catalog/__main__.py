@@ -16,7 +16,7 @@ from pathlib import Path
 from .automerge import UPDATE_BRANCH
 from .github import GitHub, GitHubError
 from .policy import (THIRD_PARTY_WARNING, Change, check_changes, check_publisher, derivative_notes,
-                     is_maintainer)
+                     is_curator, is_maintainer)
 from .records import (MAX_FILE_BYTES, RECORD_PATH, Record, icon_source, load_catalog, load_record, record_id,
                       repo_parts)
 from .report import Report
@@ -346,9 +346,12 @@ def cmd_pr(args) -> int:
     head_repo = ((pull.get("head") or {}).get("repo") or {}).get("full_name")
     same_repository = bool(head_repo) and head_repo == ((pull.get("base") or {}).get("repo") or {}).get("full_name")
     maintainer = is_maintainer(pull["author_association"]) or same_repository
+    curator = not maintainer and is_curator(author)
     report = Report()
     if maintainer:
         report.notice("pull request", f"@{author} is a maintainer; community-only rules are relaxed")
+    elif curator:
+        report.notice("pull request", f"@{author} is a curator; a maintainer still approves every change by hand")
 
     head = "refs/catalog/pr-head"
     git("fetch", "--no-tags", "--quiet", "origin", f"+refs/pull/{pull['number']}/head:{head}")
@@ -392,7 +395,7 @@ def cmd_pr(args) -> int:
             held = sum(1 for r in base_reserved if r.path.name != new.path.name
                        and (holder_of(r.path.name) or "").casefold() == author.casefold())
             check_publisher(author, maintainer, old, new, github, report,
-                            holder=holder_of(new.path.name) if old else None, held=held)
+                            holder=holder_of(new.path.name) if old else None, held=held, curator=curator)
             if report.count("error") == before:
                 verify_record(new, github, report, previous=old)
             # A new app, or a reservation being released: does it build on one that is listed?
