@@ -7,7 +7,7 @@ library and run by four workflows.
 | --- | --- | --- |
 | [Submission check](../.github/workflows/pull-request.yml) | Pull requests (`pull_request_target`) | `python3 -m catalog pr`, and in a second job the [release scan](#release-scan), `python3 -m catalog scan-pr`; then [merges a developer's release bump](#automatic-merge-of-a-developers-release-bump), `python3 -m catalog automerge` |
 | [CI](../.github/workflows/ci.yml) | Pull requests; every merge to `main`, and by hand | Tests, `catalog check` and a website build; on `main` it also does `catalog push`, then the [website deployment](website.md#deployment) |
-| [Comments](../.github/workflows/comments.yml) | Every hour, and on every discussion comment | `python3 -m catalog comments --sync`: one discussion per listed app, likes and comments written to the `comments-data` branch; see [Comments and likes](#comments-and-likes) |
+| [Comments](../.github/workflows/comments.yml) | Every hour, on every discussion comment, and on every push to `main` that changes `apps/` | `python3 -m catalog comments --sync`: one discussion per listed app, likes and comments written to the `comments-data` branch; see [Comments and likes](#comments-and-likes) |
 | [Scan the catalog](../.github/workflows/scan-catalog.yml) | Manual only | `catalog scan`: one report on every listed app, or on the title IDs given; see [Release scan](#release-scan) |
 | [Catalog health](../.github/workflows/health.yml) | Daily 06:17 UTC and manual | `catalog health --slice today` |
 | [Release updates](../.github/workflows/updates.yml) | Three times a day, 07:37, 15:37 and 23:37 UTC, and manual | `catalog updates --open-prs` |
@@ -373,8 +373,10 @@ replies are the app's comments, and its upvotes (the arrow beside the title)
 are the app's likes. A hidden marker in the post (`<!-- titleid: PPSA01234 -->`, holding the record's [id](metadata.md#shared-title-ids)) ties it
 to its record, so an app can change its name.
 
-The [Comments](../.github/workflows/comments.yml) workflow runs every hour
-and whenever someone comments (an upvote starts no workflow, so likes are as
+The [Comments](../.github/workflows/comments.yml) workflow runs every hour,
+whenever someone comments, and whenever a push to `main` changes a record in
+`apps/` (a merged pull request or a direct push), so a newly listed app gets its
+discussion right away (an upvote starts no workflow, so likes are as
 fresh as the timer). Each run:
 
 1. creates the discussion of every listed app that has none, renames the one of
